@@ -74,7 +74,7 @@ module user_specs_mod
    !  not used if the sea-level model (SLM) is not coupled to an ice sheet model (ISM)
 
    ! Input directory
-   character(*), parameter :: inputfolder_ice  = 'INPUT_FILES'
+   character(*), parameter :: inputfolder_ice  = 'INPUT_FILES/'
    character(*), parameter :: inputfolder  = '/project/ctb-ng50/bparazin/INPUT_FILES/TOPOFILES/'
    character(*), parameter :: planetfolder = '/project/ctb-ng50/bparazin/INPUT_FILES/PREMFILES/'   
    character(*), parameter :: dyntopofolder = '/project/ctb-ng50/bparazin/INPUT_FILES/DTFILES/'
@@ -122,7 +122,7 @@ module user_specs_mod
                                                 ! .false. the code assumes initial topography is equal to modern 
                                                 !      topography file "truetopo"
    logical, parameter :: iceVolume = .true.     ! .true. to output ice volume at each time step
-   logical, parameter :: coupling = .false.      ! .true. if the SLM is coupled to the ISM
+   logical, parameter :: coupling = .true.      ! .true. if the SLM is coupled to the ISM
                                                 ! .false. if not coupled                                 
    logical, parameter :: patch_ice = .false.    ! .true. patch ice data with zeros
                                                 ! .false. merge the icemodel files with ice grids provided by the ISM
@@ -141,14 +141,14 @@ module user_specs_mod
    ! if you would like a forward simulation WITHOUT a timewindow, simply set 'L_sim' equal to 'Ldt1',
    ! and set Ldt2, Ldt3 and Ldt4 to 0. 
 
-   integer, parameter :: L_sim = 21000! total length of a simulation, in years
+   integer, parameter :: L_sim = 120000! total length of a simulation, in years
    
    !internal time step intervals (dt's cannot be set as 0 but Ldt's can be)
    !**NOTE** dt# values should be defined such that dt#/dt1 is a positive integer
-   integer, parameter :: dt1 = 200! the finest time interval in the TW (in years), usually equal to coupling time step
-   integer, parameter :: dt2 = 200!  
-   integer, parameter :: dt3 = 200!
-   integer, parameter :: dt4 = 200! 
+   integer, parameter :: dt1 = 10! the finest time interval in the TW (in years), usually equal to coupling time step
+   integer, parameter :: dt2 = 500!  
+   integer, parameter :: dt3 = 500!
+   integer, parameter :: dt4 = 500! 
    
    integer, parameter :: Ldt1 = 120000! total length of time over which dt1 covers 
    integer, parameter :: Ldt2 = 0! 
