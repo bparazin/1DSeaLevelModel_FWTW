@@ -580,7 +580,7 @@ call spharmt_init(spheredat, 2*nglv, nglv, norder, radius) ! Initialize sphereda
 !-----------------------------------------------------------
 if (coupling) then 
     write(*,*) 'Sea level model is coupled to the ice sheet model, reading in NH_iceload'
-    open(unit = 1, file = folder_coupled//'NH_iceload'//ext, form = 'formatted', access = 'sequential', &
+    open(unit = 1, file = folder_coupled//'anticeload'//ext, form = 'formatted', access = 'sequential', &
     & status = 'old')
     read(1,*) nh_iceload
     close(1)
@@ -661,7 +661,7 @@ if (nmelt==0) then
        write(*,*) 'Merge initial topography with NH_bedrock and initial ice load with NH_iceload'
     
        ! Bedrock from the ice sheet model
-       open(unit = 1, file = folder_coupled//'NH_bedrock'//ext, form = 'formatted', access = 'sequential', &
+       open(unit = 1, file = folder_coupled//'AntarcticBedrock'//ext, form = 'formatted', access = 'sequential', &
        & status = 'old')
        read(1,*) nh_bedrock
        close(1)
