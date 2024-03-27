@@ -74,9 +74,10 @@ module user_specs_mod
    !  not used if the sea-level model (SLM) is not coupled to an ice sheet model (ISM)
 
    ! Input directory
-   character(*), parameter :: inputfolder_ice  = 'INPUT_NHIS2GC/'
-   character(*), parameter :: inputfolder  = '/project/ctb-ng50/Han/INPUT_FILES/TOPOFILES/'
-   character(*), parameter :: planetfolder = '/project/ctb-ng50/Han/INPUT_FILES/PREMFILES/'   
+   character(*), parameter :: inputfolder_ice  = 'INPUT_FILES/icemodel'
+   character(*), parameter :: inputfolder  = '/project/ctb-ng50/bparazin/INPUT_FILES/TOPOFILES/'
+   character(*), parameter :: planetfolder = '/project/ctb-ng50/bparazin/INPUT_FILES/PREMFILES/'   
+   character(*), parameter :: dyntopofolder = 'INPUT_FILES/others'
    
    ! Output directory
    character(*), parameter :: outputfolder = 'OUTPUT_SLM/' 
