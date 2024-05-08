@@ -786,7 +786,7 @@ if (nmelt==0) then
        lambda(:,:) = 0.0
         
        ! write the values (0.0) for the first timestep
-       open(unit = 1, file = outputfolder//'TPW'//ext, form = 'formatted', access = 'sequential', &
+       open(unit = 1, file = outputfolder//'TPW'//trim(numstr)//ext, form = 'formatted', access = 'sequential', &
        & status = 'replace')
        write(1,'(9ES19.8E2/,3ES19.8E2/,18ES19.8E2)') il(:,:), mm(:), lambda(:,:)
        ! write(1,'(9ES19.8E2/,3ES19.8E2/,18ES19.8E2)') dil(:,:,1), dm(:,1), dlambda(:,:,1)
@@ -972,32 +972,44 @@ if (nmelt.GT.0) then
 
     if (tpw) then
         ! read in variables for the rotation signal 
-        open(unit = 1, file = outputfolder//'TPW'//ext, form = 'formatted', access = 'sequential', &
-        & status = 'old')
+      !   open(unit = 1, file = outputfolder//'TPW'//ext, form = 'formatted', access = 'sequential', &
+      !   & status = 'old')
 
         oldlambda(:,:) = (0.0,0.0)
         oldil(:,:) = 0.0
         oldm(:) = 0.0
        
+
         do n = 1, nfiles-1
-            ! find the number of lines to skip to read in appropriate TPW components
-            if (n==1) then
-                j = TIMEWINDOW(n)
-            else
-                j = TIMEWINDOW(n) - TIMEWINDOW(n-1) - 1
-            endif
+            ! ! find the number of lines to skip to read in appropriate TPW components
+            ! if (n==1) then
+            !     j = TIMEWINDOW(n)
+            ! else
+            !     j = TIMEWINDOW(n) - TIMEWINDOW(n-1) - 1
+            ! endif
             
-            !skip lines to read in the rotational components corresponding to timesteps within the TW 
-            do m = 1, j
-                read(1,*) !skip line for il
-                read(1,*) !skip reading in mm
-                read(1,*) !skip reading in lambda
-            enddo
+            ! !skip lines to read in the rotational components corresponding to timesteps within the TW 
+            ! do m = 1, j
+            !     read(1,*) !skip line for il
+            !     read(1,*) !skip reading in mm
+            !     read(1,*) !skip reading in lambda
+            ! enddo
+            
+            j = TIMEWINDOW(n) ! TPW file numbers to read in from the TW array 
+
+            !read in TPW componenet from file
+            write(numstr,'(I6)') j
+            numstr = trim(adjustl(numstr))
+            ! read in ice files (upto the previous time step) from the sea-level model folder
+            open(unit = 1, file = outputfolder//'TPW'//trim(numstr)//ext, form = 'formatted',  &
+            & access = 'sequential', status = 'old')
+
             
             !read in TPW components - total rotational change from the beginning of simulation 
             read(1,'(9ES19.8E2)') ((il(i,j), i=1,3), j=1,3)
             read(1,'(3ES19.8E2)') (mm(i), i=1,3)
             read(1,'(18ES19.8E2)') ((lambda(i,j),i=0,2),j=0,2)
+
     
             !rotational changes between each time step. 
             dm(:,n) = mm(:) - oldm(:)
@@ -1460,15 +1472,6 @@ open(unit = 1, file = outputfolder//'numiter'//ext, form = 'formatted', access =
 write(1,'(I5)') ninner
 close(1)
 
-! Write out the converged rotation-related quantities 
-if (tpw) then
-   open(unit = 1, file = outputFolder//'TPW'//ext, &
-   & form = 'formatted', access = 'sequential', status = 'old', position='append')
-!        write(1,'(9ES19.8E2/,3ES19.8E2/,18ES19.8E2)') dil(:,:,nfiles), dm(:,nfiles), dlambda(:,:,nfiles)
-   write(1,'(9ES19.8E2/,3ES19.8E2/,18ES19.8E2)') il(:,:), mm(:), lambda(:,:)
-   close(1)
-endif
- 
 !      write(*,*) 'dil', dil(:,:,nfiles)
 !      write(*,*) 'dm', dm(:,nfiles)
 !      write(*,*) 'dlambda', dlambda(:,:,nfiles)
@@ -1530,6 +1533,15 @@ if (nmelt.GT.0) then
 !   & status = 'replace')
 !   write(1,'(ES16.9E2)') tinit_0(:,:)-topoxy(:,:)
 !   close(1)
+
+   !BP: Write out the converged rotation-related quantities in new format
+   if (tpw) then
+      open(unit = 1, file = outputFolder//'TPW'//trim(numstr)//ext, &
+      & form = 'formatted', access = 'sequential', status = 'replace')
+   !        write(1,'(9ES19.8E2/,3ES19.8E2/,18ES19.8E2)') dil(:,:,nfiles), dm(:,nfiles), dlambda(:,:,nfiles)
+      write(1,'(9ES19.8E2/,3ES19.8E2/,18ES19.8E2)') il(:,:), mm(:), lambda(:,:)
+      close(1)
+   endif
 
    !HH: print out the nmelt
    open(unit = 1, file = outputfolder//'nmelt'//ext, form = 'formatted', access ='sequential', &
