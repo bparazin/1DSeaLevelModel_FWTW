@@ -1504,6 +1504,9 @@ oldt0lm = t0lm ! Save old initial topography to check convergence
 
 ! Update the topography at the current time step 
 topoxy(:,:) = tinit(:,:) - deltaslxy(:,:) ! (eq. 12)
+if (dodyntopo .and. j .LE. ndyntopo) then !If we're applying a dynamic topography correction, then add that in at the end to not effect SL calcs
+   topoxy(:, :) = topoxy(:, :) - (1/ndyntopo) * dt_correction(:,:)
+endif
 
 ! Update ocean function
 do j = 1,2*nglv
@@ -1628,17 +1631,10 @@ if (nmelt.GT.0) then
    if (coupling) then 
       ! topography change between the previous and the current timestep 
       ! this is the information passed to the ice sheet model
-      if (dodyntopo .and. j .LE. ndyntopo) then !If we're applying a dynamic topography correction, then add that in at the end to not effect SL calcs
-         open(unit = 1, file = folder_coupled//'bedrock'//ext, form = 'formatted', access = 'sequential', &
-         & status = 'replace')
-         write(1,'(ES16.9E2)') topoxy_m1(:,:)-topoxy(:,:)+(1/ndyntopo) * dt_correction(:,:)
-         close(1)
-      else
-         open(unit = 1, file = folder_coupled//'bedrock'//ext, form = 'formatted', access = 'sequential', &
-         & status = 'replace')
-         write(1,'(ES16.9E2)') topoxy_m1(:,:)-topoxy(:,:)
-         close(1)
-      endif
+      open(unit = 1, file = folder_coupled//'bedrock'//ext, form = 'formatted', access = 'sequential', &
+      & status = 'replace')
+      write(1,'(ES16.9E2)') topoxy_m1(:,:)-topoxy(:,:)
+      close(1)
 
       !write out the current ice load as a new file
       open(unit = 1, file = outputfolder_ice//icemodel_out//trim(numstr)//ext, form ='formatted', access = 'sequential', &
