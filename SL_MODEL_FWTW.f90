@@ -1628,7 +1628,7 @@ if (nmelt.GT.0) then
    if (coupling) then 
       ! topography change between the previous and the current timestep 
       ! this is the information passed to the ice sheet model
-      if (dodyntopo) then !If we're applying a dynamic topography correction, then add that in at the end to not effect SL calcs
+      if (dodyntopo .and. j .LE. ndyntopo) then !If we're applying a dynamic topography correction, then add that in at the end to not effect SL calcs
          open(unit = 1, file = folder_coupled//'bedrock'//ext, form = 'formatted', access = 'sequential', &
          & status = 'replace')
          write(1,'(ES16.9E2)') topoxy_m1(:,:)-topoxy(:,:)+(1/ndyntopo) * dt_correction(:,:)
