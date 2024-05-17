@@ -90,7 +90,7 @@ module user_specs_mod
    ! Various selection ================================================================================================!
    character(4), parameter :: ext = ''    ! '.txt' | ''   ! Common file extension
    character(*), parameter :: whichplanet   = 'earth'                  ! e.g. 'earth', 'Mars', etc.
-   character(*), parameter :: planetmodel   = 'prem_coll_512.l90C.umVM5.lmVM5' ! For now, this is generated from maxwell.f by JXM
+   character(*), parameter :: planetmodel   = '' ! For now, this is generated from maxwell.f by JXM
    character(*), parameter :: icemodel      = 'ice6gC_'             ! Common name of ice files in 'inputfolder_ice'
    character(*), parameter :: icemodel_out  = 'iceload'          ! Name of ice files in 'outputfolder_ice'
    character(*), parameter :: timearray     = 'times'                  ! Name of times array text file
@@ -105,7 +105,7 @@ module user_specs_mod
    real, parameter :: epsilon1 = 1.0E-5         ! Inner loop convergence criterion
    real, parameter :: epsilon2 = 1.0E-5         ! Outer loop convergence criterion 
                                                 !  (if doing a convergence check for outer loop, see below)
-   real, parameter :: ndyntopo = 200.0          ! Number of steps over which to apply the dynamic topography correction
+   real, parameter :: ndyntopo = 500.0          ! Number of steps over which to apply the dynamic topography correction
                                                 ! Should be an integer such that 1/ndyntopo is terminating, its just
                                                 ! Typed as a real to avoid integer division/casting issues
 
@@ -145,14 +145,14 @@ module user_specs_mod
    
    !internal time step intervals (dt's cannot be set as 0 but Ldt's can be)
    !**NOTE** dt# values should be defined such that dt#/dt1 is a positive integer
-   integer, parameter :: dt1 = 10! the finest time interval in the TW (in years), usually equal to coupling time step
-   integer, parameter :: dt2 = 500!  
-   integer, parameter :: dt3 = 500!
-   integer, parameter :: dt4 = 500! 
+   integer, parameter :: dt1 = 200! the finest time interval in the TW (in years), usually equal to coupling time step
+   integer, parameter :: dt2 = 1000!  
+   integer, parameter :: dt3 = 5000!
+   integer, parameter :: dt4 = 200! 
    
-   integer, parameter :: Ldt1 = 120000! total length of time over which dt1 covers 
-   integer, parameter :: Ldt2 = 0! 
-   integer, parameter :: Ldt3 = 0!
+   integer, parameter :: Ldt1 = 5000! total length of time over which dt1 covers 
+   integer, parameter :: Ldt2 = 30000! 
+   integer, parameter :: Ldt3 = 85000!
    integer, parameter :: Ldt4 = 0!
 
 
@@ -1504,7 +1504,7 @@ oldt0lm = t0lm ! Save old initial topography to check convergence
 
 ! Update the topography at the current time step 
 if (dodyntopo .and. j .LE. ndyntopo) then !If we're applying a dynamic topography correction, then add that in at the end to not effect SL calcs
-   topoxy(:, :) = tinit(:,:) - deltaslxy(:,:) - (1/ndyntopo) * dt_correction(:,:)
+   topoxy(:,:) = tinit(:,:) - deltaslxy(:,:) - (1/ndyntopo) * dt_correction(:,:)
 else
    topoxy(:,:) = tinit(:,:) - deltaslxy(:,:) ! (eq. 12)
 endif
