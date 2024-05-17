@@ -1503,7 +1503,7 @@ endif
 oldt0lm = t0lm ! Save old initial topography to check convergence
 
 ! Update the topography at the current time step 
-if (dodyntopo .and. j .LE. ndyntopo) then !If we're applying a dynamic topography correction, then add that in at the end to not effect SL calcs
+if (dodyntopo .and. nmelt.GT.0 .and. TIMEWINDOW(nfiles) .LE. ndyntopo) then !If we're applying a dynamic topography correction, then add that in at the end to not effect SL calcs
    topoxy(:,:) = tinit(:,:) - deltaslxy(:,:) - (1/ndyntopo) * dt_correction(:,:)
 else
    topoxy(:,:) = tinit(:,:) - deltaslxy(:,:) ! (eq. 12)
