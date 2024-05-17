@@ -1503,9 +1503,10 @@ endif
 oldt0lm = t0lm ! Save old initial topography to check convergence
 
 ! Update the topography at the current time step 
-topoxy(:,:) = tinit(:,:) - deltaslxy(:,:) ! (eq. 12)
 if (dodyntopo .and. j .LE. ndyntopo) then !If we're applying a dynamic topography correction, then add that in at the end to not effect SL calcs
-   topoxy(:, :) = topoxy(:, :) - (1/ndyntopo) * dt_correction(:,:)
+   topoxy(:, :) = tinit(:,:) - deltaslxy(:,:) - (1/ndyntopo) * dt_correction(:,:)
+else
+   topoxy(:,:) = tinit(:,:) - deltaslxy(:,:) ! (eq. 12)
 endif
 
 ! Update ocean function
