@@ -108,6 +108,7 @@ module user_specs_mod
    real, parameter :: ndyntopo = 200.0          ! Number of steps over which to apply the dynamic topography correction
                                                 ! Should be an integer such that 1/ndyntopo is terminating, its just
                                                 ! Typed as a real to avoid integer division/casting issues
+   integer, parameter :: fix_hemi = 625         ! If non-negative and coupling true, fix iceload not provided to iceload[fix_hemi]
 
    ! CHECK TRUE OR FALSE ==============================================================================================!
    logical, parameter :: checkmarine = .false.  ! .true. to check for floating marine-based ice
@@ -129,6 +130,7 @@ module user_specs_mod
                                                 !. patch_ice is only activated when 'coupling' is .true.
    logical, parameter :: dodyntopo = .true.     ! .true. also apply prescribed dynamic topography correction
                                                 ! .false. to not do that. Only considered when 'coupling' is .true.
+   logical, parameter :: doinviscid = .true.    ! .true. to calculate sea level for an invisid earth model
                                 
    !Time Window parameters=======================================================================================!
 
@@ -329,10 +331,12 @@ complex :: viscoustt,viscousttrr                            ! Used in Love numbe
 ! Miscellaneous variables
 integer :: ninner                                           ! Iteration of inner loop
 integer :: i,j,k,l,m,n,nn                                   ! Do-loop indices
-character(6) :: numstr, numstr2                             ! String for timestep number for reading/writing files
+character(6) :: numstr, numstr2, numstr3                    ! String for timestep number for reading/writing files
 integer :: counti, countf,countrate         ! Computation timing
 real :: counti_cpu, countf_cpu
 type(sphere) :: spheredat                                   ! SH transform data to be passed to subroutines
+real :: invisid_factor                                      ! 1 or 0, factor to multiply beta by in love number formulation to 
+                                                            ! potentially make inviscid
 
 ! For Jerry's code to read in Love numbers
 integer :: legord(norder),nmod(norder),nmodes(norder),ll,nm,np
@@ -586,6 +590,11 @@ if (coupling) then
     close(1)
 endif
 
+if (doinviscid) then
+   invisid_factor = 0
+else
+   invisid_factor = 1
+endif
 !========================================================================================================================
 !       Initialize the model at times(1) when there has been no melting episodes yet  NMELT = 0 
 !========================================================================================================================
@@ -607,9 +616,15 @@ if (nmelt==0) then
     !====================== topography and ice load========================
     ! read in the initial iceload from the coupled ice input folder
     ! open(unit = 1, file = inputfolder_ice//icemodel//trim(numstr)//ext, form = 'formatted',  &
-    ! Changed numstr to 625 to fix NH ice
-    open(unit = 1, file = inputfolder_ice//icemodel//'625'//ext, form = 'formatted',  &
-    & access = 'sequential', status = 'old')
+    if (fix_hemi .le. -1) then
+      write(numstr3,'(I4)') fix_hemi
+      numstr = trim(adjustl(numstr3))
+      open(unit = 1, file = inputfolder_ice//icemodel//numstr3//ext, form = 'formatted',  &
+      & access = 'sequential', status = 'old')
+    else
+      open(unit = 1, file = inputfolder_ice//icemodel//numstr//ext, form = 'formatted',  &
+      & access = 'sequential', status = 'old')
+    endif
     read(1,*) icexy(:,:,1)
     close(1)
     
@@ -874,8 +889,15 @@ if (nmelt.GT.0) then
      
        ! for iceload at the current time step, read the corresponding file from 'inputfolder_ice'
        ! open(unit = 1, file = inputfolder_ice//icemodel//trim(numstr)//ext, form = 'formatted',  &
-       open(unit = 1, file = inputfolder_ice//icemodel//'625'//ext, form = 'formatted',  &
-       & access = 'sequential', status = 'old')
+       if (fix_hemi .le. -1) then
+         write(numstr3,'(I4)') fix_hemi
+         numstr = trim(adjustl(numstr3))
+         open(unit = 1, file = inputfolder_ice//icemodel//numstr3//ext, form = 'formatted',  &
+         & access = 'sequential', status = 'old')
+       else
+         open(unit = 1, file = inputfolder_ice//icemodel//numstr//ext, form = 'formatted',  &
+         & access = 'sequential', status = 'old')
+       endif
        read(1,*) icexy(:,:,nfiles)
        close(1) 
     
@@ -1038,14 +1060,6 @@ if (nmelt.GT.0) then
     & status = 'old')
     read(1,*) topoxy_m1(:,:)
     close(1)
-
-    if (coupling .and. dodyntopo) then
-        !If coupling and applying dynamic topography correction, read that correction in here
-        open(unit = 1, file = dyntopofolder//dyntopomap, form = 'formatted', access = 'sequential', &
-        & status = 'old')
-        read(1,*) dt_correction(:,:)
-        close(1)
-    endif
     
     if (Travel.EQ.0) then 
         !if the TW hasnt started travelling, initial topography of the TW is that of the total simulation
@@ -1271,9 +1285,9 @@ do ! Inner loop
          betattprime = 0.0
          do k = 1,nmod(2) ! Sum over k=1,K
             betatt = betatt + (rprime(k,2) / s(k,2)) &
-                     & * ( 1.0 - exp(-1.0 * s(k,2) * (times(nfiles) - times(nn)) / 1000.0) )
+                     & * ( 1.0 - invisid_factor * exp(-1.0 * s(k,2) * (times(nfiles) - times(nn)) / 1000.0) )
             betattprime = betattprime + &
-                        & (rprimeT(k,2) / s(k,2)) * ( 1.0 - exp(-1.0 * s(k,2) * (times(nfiles) - times(nn)) / 1000.0) )
+                        & (rprimeT(k,2) / s(k,2)) * ( 1.0 - invisid_factor * exp(-1.0 * s(k,2) * (times(nfiles) - times(nn)) / 1000.0) )
          enddo
          sum_il(:,:) = sum_il(:,:) + dil(:,:,nn) * betatt
          sum_m(:) = sum_m(:) + dm(:,nn) * betattprime
@@ -1303,7 +1317,7 @@ do ! Inner loop
          lovebetatt(nn) = 0.0
          do k = 1,nmod(2) ! Sum over k=1,K
             lovebetatt(nn) = lovebetatt(nn) + ((rprimeT(k,2) - rT(k,2)) / s(k,2)) & 
-                             * ( 1 - exp(-1.0 * s(k,2) * (times(nfiles) - times(nn)) / 1000.0) ) ! (eq. B27)
+                             * ( 1 - invisid_factor * exp(-1.0 * s(k,2) * (times(nfiles) - times(nn)) / 1000.0) ) ! (eq. B27)
          enddo
       enddo
      
@@ -1322,7 +1336,7 @@ do ! Inner loop
             do k = 1,nmod(2) ! Sum over k=1,K
                lovebetattrr(nn) = lovebetattrr(nn) & 
                                  + ((rT(k,2)) / s(k,2)) & 
-                                 * (1 - exp(-1.0 * s(k,2) * (times(nfiles) - times(nn)) / 1000.0)) ! (eq. B27)
+                                 * (1 - invisid_factor * exp(-1.0 * s(k,2) * (times(nfiles) - times(nn)) / 1000.0)) ! (eq. B27)
             enddo
          enddo
          do m = 0,2
@@ -1347,7 +1361,7 @@ do ! Inner loop
          lovebeta(nn,l) = 0.0
          do k = 1,nmod(l) ! Sum over k=1,K
             lovebeta(nn,l) = lovebeta(nn,l) + ((rprime(k,l) - r(k,l)) / s(k,l)) & 
-                            * (1 - exp(-1.0 * s(k,l) * (times(nfiles) - times(nn)) / 1000.0)) ! (eq. B14)
+                            * (1 - invisid_factor * exp(-1.0 * s(k,l) * (times(nfiles) - times(nn)) / 1000.0)) ! (eq. B14)
          enddo
       enddo
    enddo
@@ -1358,7 +1372,7 @@ do ! Inner loop
             lovebetarr(nn,l) = 0.0
             do k = 1,nmod(l) ! Sum over k=1,K (modes)
                lovebetarr(nn,l) = lovebetarr(nn,l) & 
-                              & + ((r(k,l)) / s(k,l)) * (1 - exp(-1.0 * s(k,l) * (times(nfiles) - times(nn)) / 1000.0))
+                              & + ((r(k,l)) / s(k,l)) * (1 - invisid_factor * exp(-1.0 * s(k,l) * (times(nfiles) - times(nn)) / 1000.0))
                               ! (eq. B14)
             enddo
          enddo
