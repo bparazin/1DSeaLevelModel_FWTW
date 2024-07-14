@@ -1,5 +1,5 @@
 ! SL_MODEL_FWTW.90  - Holly Kyeore Han (PhD Student, McGill University 2015-2021, Advisor: by Natalya Gomez),
-! Sea Level Model with ForWard and TimeWindow algorithm (FWTW). LAST UPDATE: April 1st, 2021 by Holly Han 
+! Sea Level Model with ForWard and TimeWindow algorithm (FWTW). LAST UPDATE: August, 2024 by B. Parazin
 
 ! The is a FORWARD sea-level model with the timewindow algorithm. The code is modified from SL_TPW.f90, a new, 
 ! benchmarked ice-age sea-level model written by Sam Goldberg, Harvard University EPS '16 (Advised by Jerry Mitrovica) 
@@ -7,7 +7,9 @@
 ! modified to include text format of input and output files and the Structure of Mars by Erik. N.-H. Chan (Post Doctoral
 ! Fellow, McGill University 2017-2019). The code was then modified the to a forward sea-level model (following the 
 ! algorithm by Gomez et al., 2010) that can be coupled to a dynamic ice sheet model and with a new time window algorithm 
-! by Holly Han during her PhD work at McGill University.   
+! by Holly Han during her PhD work at McGill University. This code was then further modified by B. Parazin during their
+! PhD work at McGill University to allow one to include a prescribed dynamic topography change following the algorithm
+! given in Austermann and Mitrovica et al 2015  
 
 
 ! For all variables except SL, the prefix d- is equivalent to δ- in Kendall, i.e. incremental change over one timestep.
@@ -63,6 +65,7 @@ module user_specs_mod
    ! Directories=======================================================================================================!
    ! 'inputfolder_ice' stores ice history files (if coupled, this folder provides iceloads outside the ice model domain)
    ! 'inputfolder' stores files such as modern observed topography, times array, known initial topography
+   ! 'inputfolder_dt' stores prescribed dynamic topography change files 
    ! 'planetfolder': Planetary model directory, input forder for the Earth structure (i.e. PREM files)
    !  The filename of the desired model (i.e., the Love numbers) given by the planetmodel variable below. This is now 
    !  incorporated into the planets_mod module below, since automation limits the freedom in naming, which could be 
@@ -75,7 +78,7 @@ module user_specs_mod
 
    ! Input directory
    character(*), parameter :: inputfolder_ice  = 'INPUT_FILES/'
-   character(*), parameter :: inputfolder_dt   = 'INPUT_DT'
+   character(*), parameter :: inputfolder_dt   = 'INPUT_DT/'
    character(*), parameter :: inputfolder  = '/project/ctb-ng50/bparazin/INPUT_FILES/TOPOFILES/'
    character(*), parameter :: planetfolder = '/project/ctb-ng50/bparazin/INPUT_FILES/PREMFILES/'  
    
@@ -91,7 +94,10 @@ module user_specs_mod
    character(4), parameter :: ext = ''    ! '.txt' | ''   ! Common file extension
    character(*), parameter :: whichplanet   = 'earth'                  ! e.g. 'earth', 'Mars', etc.
    character(*), parameter :: planetmodel   = 'prem_coll_512.l90C.umVM5.lmVM5' ! For now, this is generated from maxwell.f by JXM
+   character(*), parameter :: input_coupling= 'anticeload' !Name of the iceload file output by the coupled ice sheet model
+   character(*), parameter :: input_cbed    = 'AntarcticBedrock' !name of the initial bedrock file output by the coupled ice sheet model
    character(*), parameter :: icemodel      = 'ice6gC_'             ! Common name of ice files in 'inputfolder_ice'
+   character(*), parameter :: dtmodel       = 'delta_dt'          ! Common name of dynamic topography input files in 'inputfolder_dt'
    character(*), parameter :: icemodel_out  = 'iceload'          ! Name of ice files in 'outputfolder_ice'
    character(*), parameter :: timearray     = 'times'                  ! Name of times array text file
    character(*), parameter :: topomodel     = 'etopo2_512_ice6gC '       ! Bedrock topography (NO ICE INCLUDED!!) at time = 0ka       
@@ -124,7 +130,7 @@ module user_specs_mod
                                                 ! .false. merge the icemodel files with ice grids provided by the ISM
                                                 !. patch_ice is only activated when 'coupling' is .true.
    logical, parameter :: dodyntopo = .true.     ! .true. also apply prescribed dynamic topography correction
-                                                ! .false. to not do that. Only considered when 'coupling' is .true.
+                                                ! .false. to not do that. 
    logical, parameter :: doinviscid = .true.    ! .true. to calculate sea level for an invisid earth model
                                 
    !Time Window parameters=======================================================================================!
@@ -237,7 +243,6 @@ implicit none
 !===============================  Variables for ice sheet - sea level model coupling ===================================|
 real, dimension(nglv,2*nglv) :: nh_bedrock        ! Northern Hemispheric bedrock provided by the ice sheet model        |
 real, dimension(nglv,2*nglv) :: nh_iceload        ! Northern Hemispheric iceload provided by the ice sheet model        |
-real, dimension(nglv,2*nglv) :: dt_correction     ! Prescribed dynamic topography ajustment applied by SLM              |
 !=======================================================================================================================|
 
 !============================================  Variables for the time window============================================|
@@ -284,6 +289,13 @@ real, dimension(nglv,2*nglv) :: pred_pres_topo  ! predicted present topography a
 real, dimension(nglv,2*nglv) :: init_topo_corr  ! correction applied to compute tinit_0 at current outer-iteration loop |  
 character(6) :: iterstr                         ! String for timestep number for reading/writing files                  |
 !=======================================================================================================================|
+
+!========================= Variables for prescribed dynamic topography correction ======================================|
+real, dimension(nglv,2*nglv) :: delta_dt_xy !Prescribed dynamic topography ajustment added to dSL at current timestep   |
+complex, dimension(0:norder,0:norder) :: delta_dt_lm !Above in spectral domain                                          |
+!=======================================================================================================================|
+
+
 ! Inputs
 real, dimension(nglv,2*nglv) :: truetopo        ! Present-day topography
 real, dimension(npam,norder) :: rprime,r,s      ! Love numbers
@@ -579,7 +591,7 @@ call spharmt_init(spheredat, 2*nglv, nglv, norder, radius) ! Initialize sphereda
 !-----------------------------------------------------------
 if (coupling) then 
     write(*,*) 'Sea level model is coupled to the ice sheet model, reading in NH_iceload'
-    open(unit = 1, file = folder_coupled//'anticeload'//ext, form = 'formatted', access = 'sequential', &
+    open(unit = 1, file = folder_coupled//input_coupling//ext, form = 'formatted', access = 'sequential', &
     & status = 'old')
     read(1,*) nh_iceload
     close(1)
@@ -664,7 +676,7 @@ if (nmelt==0) then
        write(*,*) 'Merge initial topography with NH_bedrock and initial ice load with NH_iceload'
     
        ! Bedrock from the ice sheet model
-       open(unit = 1, file = folder_coupled//'AntarcticBedrock'//ext, form = 'formatted', access = 'sequential', &
+       open(unit = 1, file = folder_coupled/input_cbed//ext, form = 'formatted', access = 'sequential', &
        & status = 'old')
        read(1,*) nh_bedrock
        close(1)
@@ -942,6 +954,21 @@ if (nmelt.GT.0) then
        & status = 'old', position='append')
        write(1,'(ES14.4E2)') times(nfiles)
        close(1)         
+    endif
+
+    if(dodyntopo) then
+      j = TIMEWINDOW(nfiles) ! dnyamic topography number to read in from the TW array 
+      write(*,'(A,I6)') 'model is using prescribed dynamic topography, reading in dynamic topography file number,:', j
+      write(numstr,'(I6)') j
+      numstr = trim(adjustl(numstr))
+
+      open(unit = 1, file = inputfolder_dt//dtmodel//trim(numstr)//ext, form = 'formatted',  &
+      & access = 'sequential', status = 'old')
+      read(1,*) delta_dt_xy(:,:)
+      close(1) 
+
+      !Convert to spectral, since when we add it to dSL its in the spectral domain
+      call spat2spec(delta_dt_xy(:,:), delta_dt_lm(:,:), spheredat)
     endif
     
     !Read in the initial topography (topo at the beginning of the full simulation)
@@ -1384,6 +1411,11 @@ do ! Inner loop
 
    ! Add rotational effects (calculated above)
    dsllm(0:2,0:2) = dsllm(0:2,0:2) + dsl_rot(0:2,0:2)
+
+   ! Add prescribed dynamic topography effects, if included 
+   if (dodyntopo) then
+      dsllm(:, :) = dsllm(:, :) + delta_dt_lm(:,:)
+   endif
    
    ! Convert dSL (total spatially heterogeneous change since time0) to spatial domain
    call spec2spat(dslxy, dsllm, spheredat)
