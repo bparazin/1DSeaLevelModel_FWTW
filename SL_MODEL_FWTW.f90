@@ -75,9 +75,9 @@ module user_specs_mod
 
    ! Input directory
    character(*), parameter :: inputfolder_ice  = 'INPUT_FILES/'
+   character(*), parameter :: inputfolder_dt   = 'INPUT_DT'
    character(*), parameter :: inputfolder  = '/project/ctb-ng50/bparazin/INPUT_FILES/TOPOFILES/'
-   character(*), parameter :: planetfolder = '/project/ctb-ng50/bparazin/INPUT_FILES/PREMFILES/'   
-   character(*), parameter :: dyntopofolder = '/project/ctb-ng50/bparazin/INPUT_FILES/DTFILES/'
+   character(*), parameter :: planetfolder = '/project/ctb-ng50/bparazin/INPUT_FILES/PREMFILES/'  
    
    ! Output directory
    character(*), parameter :: outputfolder = 'OUTPUT_SLM/' 
@@ -96,7 +96,6 @@ module user_specs_mod
    character(*), parameter :: timearray     = 'times'                  ! Name of times array text file
    character(*), parameter :: topomodel     = 'etopo2_512_ice6gC '       ! Bedrock topography (NO ICE INCLUDED!!) at time = 0ka       
    character(*), parameter :: topo_initial  = 'etopo2_512_ice6gC' 
-   character(*), parameter :: dyntopomap    = 'richards_TC_gl'   !Name of the dynamic topography correction in dyntopofolder
    
    ! Model parameters==================================================================================================!
    integer, parameter :: norder = 512           ! Max spherical harmonic degree/order
@@ -105,10 +104,6 @@ module user_specs_mod
    real, parameter :: epsilon1 = 1.0E-5         ! Inner loop convergence criterion
    real, parameter :: epsilon2 = 1.0E-5         ! Outer loop convergence criterion 
                                                 !  (if doing a convergence check for outer loop, see below)
-   real, parameter :: ndyntopo = 200.0          ! Number of steps over which to apply the dynamic topography correction
-                                                ! Should be an integer such that 1/ndyntopo is terminating, its just
-                                                ! Typed as a real to avoid integer division/casting issues
-   integer, parameter :: fix_hemi = 625         ! If non-negative and coupling true, fix iceload not provided to iceload[fix_hemi]
 
    ! CHECK TRUE OR FALSE ==============================================================================================!
    logical, parameter :: checkmarine = .false.  ! .true. to check for floating marine-based ice
@@ -616,15 +611,8 @@ if (nmelt==0) then
     !====================== topography and ice load========================
     ! read in the initial iceload from the coupled ice input folder
     ! open(unit = 1, file = inputfolder_ice//icemodel//trim(numstr)//ext, form = 'formatted',  &
-    if (fix_hemi .le. -1) then
-      write(numstr3,'(I4)') fix_hemi
-      numstr = trim(adjustl(numstr3))
-      open(unit = 1, file = inputfolder_ice//icemodel//numstr3//ext, form = 'formatted',  &
-      & access = 'sequential', status = 'old')
-    else
-      open(unit = 1, file = inputfolder_ice//icemodel//numstr//ext, form = 'formatted',  &
-      & access = 'sequential', status = 'old')
-    endif
+    open(unit = 1, file = inputfolder_ice//icemodel//numstr//ext, form = 'formatted',  &
+    & access = 'sequential', status = 'old')
     read(1,*) icexy(:,:,1)
     close(1)
     
@@ -889,15 +877,8 @@ if (nmelt.GT.0) then
      
        ! for iceload at the current time step, read the corresponding file from 'inputfolder_ice'
        ! open(unit = 1, file = inputfolder_ice//icemodel//trim(numstr)//ext, form = 'formatted',  &
-       if (fix_hemi .le. -1) then
-         write(numstr3,'(I4)') fix_hemi
-         numstr = trim(adjustl(numstr3))
-         open(unit = 1, file = inputfolder_ice//icemodel//numstr3//ext, form = 'formatted',  &
-         & access = 'sequential', status = 'old')
-       else
-         open(unit = 1, file = inputfolder_ice//icemodel//numstr//ext, form = 'formatted',  &
-         & access = 'sequential', status = 'old')
-       endif
+       open(unit = 1, file = inputfolder_ice//icemodel//trim(numstr)//ext, form = 'formatted',  &
+       & access = 'sequential', status = 'old')
        read(1,*) icexy(:,:,nfiles)
        close(1) 
     
@@ -1642,17 +1623,10 @@ if (nmelt.GT.0) then
    if (coupling) then 
       ! topography change between the previous and the current timestep 
       ! this is the information passed to the ice sheet model
-      if (dodyntopo .and. j .LE. ndyntopo) then !If we're applying a dynamic topography correction, then add that in at the end to not effect SL calcs
-         open(unit = 1, file = folder_coupled//'bedrock'//ext, form = 'formatted', access = 'sequential', &
-         & status = 'replace')
-         write(1,'(ES16.9E2)') topoxy_m1(:,:)-topoxy(:,:)+(1/ndyntopo) * dt_correction(:,:)
-         close(1)
-      else
-         open(unit = 1, file = folder_coupled//'bedrock'//ext, form = 'formatted', access = 'sequential', &
-         & status = 'replace')
-         write(1,'(ES16.9E2)') topoxy_m1(:,:)-topoxy(:,:)
-         close(1)
-      endif
+      open(unit = 1, file = folder_coupled//'bedrock'//ext, form = 'formatted', access = 'sequential', &
+      & status = 'replace')
+      write(1,'(ES16.9E2)') topoxy_m1(:,:)-topoxy(:,:)
+      close(1)
 
       !write out the current ice load as a new file
       open(unit = 1, file = outputfolder_ice//icemodel_out//trim(numstr)//ext, form ='formatted', access = 'sequential', &
