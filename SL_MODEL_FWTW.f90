@@ -676,7 +676,7 @@ if (nmelt==0) then
        write(*,*) 'Merge initial topography with NH_bedrock and initial ice load with NH_iceload'
     
        ! Bedrock from the ice sheet model
-       open(unit = 1, file = folder_coupled/input_cbed//ext, form = 'formatted', access = 'sequential', &
+       open(unit = 1, file = folder_coupled//input_cbed//ext, form = 'formatted', access = 'sequential', &
        & status = 'old')
        read(1,*) nh_bedrock
        close(1)
