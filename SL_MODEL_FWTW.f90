@@ -967,7 +967,7 @@ if (nmelt.GT.0) then
          write(numstr,'(I4)') j
          numstr = trim(adjustl(numstr))
      
-         open(unit = 1, file = outputfolder//dtmodel//trim(numstr)//ext, form = 'formatted', access = 'sequential', &
+         open(unit = 1, file = inputfolder_dt//dtmodel//trim(numstr)//ext, form = 'formatted', access = 'sequential', &
          & status = 'old')
          read(1,*) delta_dt_xy_init(:,:)
          close(1)
