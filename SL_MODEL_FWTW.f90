@@ -292,6 +292,7 @@ character(6) :: iterstr                         ! String for timestep number for
 
 !========================= Variables for prescribed dynamic topography correction ======================================|
 real, dimension(nglv,2*nglv) :: delta_dt_xy !Prescribed dynamic topography ajustment added to dSL at current timestep   |
+real, dimension(nglv,2*nglv) :: delta_dt_xy_init !Change in dynamic topography at first step in the time window         |
 complex, dimension(0:norder,0:norder) :: delta_dt_lm !Above in spectral domain                                          |
 !=======================================================================================================================|
 
@@ -957,7 +958,22 @@ if (nmelt.GT.0) then
     endif
 
     if(dodyntopo) then
-      j = TIMEWINDOW(nfiles) ! dnyamic topography number to read in from the TW array 
+      if (Travel.EQ.0) then 
+         !if the TW hasnt started travelling, initial dynamic topography change is nothing
+         delta_dt_xy_init(:,:) = 0
+     else
+         !if The TW is moving, dynamic topography change no longer considered is read in 
+         j = TIMEWINDOW(1) 
+         write(numstr,'(I4)') j
+         numstr = trim(adjustl(numstr))
+     
+         open(unit = 1, file = outputfolder//dtmodel//trim(numstr)//ext, form = 'formatted', access = 'sequential', &
+         & status = 'old')
+         read(1,*) delta_dt_xy_init(:,:)
+         close(1)
+     endif
+
+      j = TIMEWINDOW(nfiles) ! dynamic topography number to read in from the TW array 
       write(*,'(A,I6)') 'model is using prescribed dynamic topography, reading in dynamic topography file number,:', j
       write(numstr,'(I6)') j
       numstr = trim(adjustl(numstr))
@@ -966,6 +982,9 @@ if (nmelt.GT.0) then
       & access = 'sequential', status = 'old')
       read(1,*) delta_dt_xy(:,:)
       close(1) 
+
+      !make delta_dt change since the first step of the time window
+      delta_dt_xy(:, :) = delta_dt_xy(:, :) - delta_dt_xy_init(:, :)
 
       !Convert to spectral, since when we add it to dSL its in the spectral domain
       call spat2spec(delta_dt_xy(:,:), delta_dt_lm(:,:), spheredat)
@@ -1437,7 +1456,7 @@ do ! Inner loop
    deltasllm(:,:) = dsllm(:,:) ! Spatially heterogeneous component
    deltasllm(0,0) = deltasllm(0,0) + conserv ! Add uniform conservation term to (0,0)
    call spec2spat(deltaslxy, deltasllm, spheredat) ! Synthesize deltasl
- 
+
    ! Calculate convergence criterion for inner loop
    if ( abs(sum(abs(dSlm)) - sum(abs(olddSlm))) < epsilon(0.0) .and. abs(sum(abs(olddSlm))) < epsilon(0.0)) then
        xi = 0 ! Otherwise xi = 0 / 0 = NaN at the first loop of the first timestep.
