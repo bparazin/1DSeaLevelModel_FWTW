@@ -132,6 +132,7 @@ module user_specs_mod
    logical, parameter :: dodyntopo = .true.     ! .true. also apply prescribed dynamic topography correction
                                                 ! .false. to not do that. 
    logical, parameter :: doinviscid = .true.    ! .true. to calculate sea level for an invisid earth model
+   logical, parameter :: dobarystatic = .false. ! Neglect delta script sl to calculate just barystatic changes
                                 
    !Time Window parameters=======================================================================================!
 
@@ -1188,6 +1189,19 @@ rprime(:,:) = resk(:,:)
 r(:,:) = resh(:,:)
 rprimeT(:,:) = tresk(:,:)
 rT(:,:) = tresh(:,:)
+
+if (dobarystatic) then
+   !NOGRD MAKE THE EARTH RIGID
+   rprime(:,:) = 0
+   r(:,:) = 0
+   rprimeT(:,:) = 0
+   rT(:,:) = 0
+   he(:) = 0
+   ke(:) = 0
+   kTE(:) = 0
+   hTE(:) = 0
+endif
+
 
 !===========================================================
 !                       CALCULATIONS                        
