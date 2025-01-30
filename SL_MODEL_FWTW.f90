@@ -718,10 +718,32 @@ if (nmelt==0) then
     close(1)
     
     !========================== beta function =========================     
+
+    ! From LANL folks
+    if (checkmarine) then
+      write(*,*) 'Performing Marine Check for initial beta'
+      do j = 1,2*nglv
+         do i = 1,nglv
+            if (tinit_0(i,j) > 0) then
+            ! If not marine...
+               icestarxy(i,j) = icexy(i,j,1)
+            elseif (icexy(i,j,1) > (abs(tinit_0(i,j)) * rhow / rhoi)) then
+            !...else if marine, but thick enough to be grounded
+               icestarxy(i,j) = icexy(i,j,1)
+            else
+            !...if floating ice
+               icestarxy(i,j) = 0.0
+            endif
+         enddo
+      enddo
+   else ! not checkmarine: use icexy unmodified
+      icestarxy(:,:) = icexy(:,:,1)
+   endif
+
     ! calculate initial beta
     do j = 1,2*nglv
        do i = 1,nglv
-          if (icexy(i,j,1)==0) then 
+          if (icestarxy(i,j) < epsilon(0.0)) then 
              beta0(i,j)=1
           else
              beta0(i,j)=0
@@ -795,15 +817,15 @@ if (nmelt==0) then
                         icestarxy(i,j) = icexy(i,j,1)
                      else
                      !...if floating ice
-                        icestarxy(i,j) = 0
+                        icestarxy(i,j) = 0.0
                      endif
                   enddo
                enddo
                ! Decompose ice field 
-               call spat2spec(icestarxy(:,:),icestarlm(:,:),spheredat)
             else ! If not checking for floating ice
-               call spat2spec(icexy(:,:,1),icestarlm(:,:),spheredat) ! Decompose ice field
+               icestarxy(:,:) = icexy(:,:,1)
             endif
+            call spat2spec(icestarxy(:,:),icestarlm(:,:),spheredat)
 
         ice_volume = icestarlm(0,0)*4*pi*radius**2
 
@@ -1136,6 +1158,7 @@ call spat2spec(tinit(:,:), t0lm, spheredat)
 do n=1, nfiles
    ! Calculate icestar (STEP 3) (eq.43)
    if (checkmarine) then
+      write (*, *) 'Performing Marine Check'
       do j = 1,2*nglv
          do i = 1,nglv
             if (tinit(i,j) > 0) then 
@@ -1146,15 +1169,15 @@ do n=1, nfiles
                icestarxy(i,j) = icexy(i,j,n)
             else
             !...if floating ice
-               icestarxy(i,j) = 0
+               icestarxy(i,j) = 0.0
             endif
          enddo
       enddo
       ! Decompose ice field 
-      call spat2spec(icestarxy(:,:),icestarlm(:,:),spheredat)
    else ! If not checking for floating ice
-      call spat2spec(icexy(:,:,n),icestarlm(:,:),spheredat) ! Decompose ice field
+      icestarxy(:,:) = icexy(:,:,n)
    endif
+   call spat2spec(icestarxy(:,:),icestarlm(:,:),spheredat)
    
    if (n == 1) then
       dicestarlm(:,:) = 0.0            ! No change at first timestep
@@ -1178,7 +1201,7 @@ enddo
 ! Calculate current beta based on iceload at the current timestep
 do j = 1,2*nglv
    do i = 1,nglv
-       if (icexy(i,j,nfiles) < epsilon(0.0)) then 
+       if (icestarxy(i,j) < epsilon(0.0)) then 
           beta(i,j) = 1
        else
           beta(i,j) = 0
