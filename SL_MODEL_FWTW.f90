@@ -73,28 +73,28 @@ module user_specs_mod
    ! 'folder_coupled' stores files that are exchanged between the ice (NHiceload) and sea level (bedrock) models. It is
    !  not used if the sea-level model (SLM) is not coupled to an ice sheet model (ISM)
 
-   ! Input directory
-   character(*), parameter :: inputfolder_ice  = 'INPUT_NHIS2GC/'
-   character(*), parameter :: inputfolder  = '/project/ctb-ng50/Han/INPUT_FILES/TOPOFILES/'
-   character(*), parameter :: planetfolder = '/project/ctb-ng50/Han/INPUT_FILES/PREMFILES/'   
+   ! ! Input directory
+   ! character(*), parameter :: inputfolder_ice  = 'INPUT_NHIS2GC/'
+   ! character(*), parameter :: inputfolder  = '/project/ctb-ng50/Han/INPUT_FILES/TOPOFILES/'
+   ! character(*), parameter :: planetfolder = '/project/ctb-ng50/Han/INPUT_FILES/PREMFILES/'   
    
-   ! Output directory
-   character(*), parameter :: outputfolder = 'OUTPUT_SLM/' 
-   character(*), parameter :: outputfolder_ice = 'ICELOAD_SLM/'
+   ! ! Output directory
+   ! character(*), parameter :: outputfolder = 'OUTPUT_SLM/' 
+   ! character(*), parameter :: outputfolder_ice = 'ICELOAD_SLM/'
 
-   ! Other directory
-   character(*), parameter :: folder_coupled = '' 
+   ! ! Other directory
+   ! character(*), parameter :: folder_coupled = '' 
   
    
    ! Various selection ================================================================================================!
-   character(4), parameter :: ext = ''    ! '.txt' | ''   ! Common file extension
-   character(*), parameter :: whichplanet   = 'earth'                  ! e.g. 'earth', 'Mars', etc.
-   character(*), parameter :: planetmodel   = 'prem_coll_512.l120C.ump5.lm5' ! For now, this is generated from maxwell.f by JXM
-   character(*), parameter :: icemodel      = 'iceload'             ! Common name of ice files in 'inputfolder_ice'
-   character(*), parameter :: icemodel_out  = 'iceload'          ! Name of ice files in 'outputfolder_ice'
-   character(*), parameter :: timearray     = 'times'                  ! Name of times array text file
-   character(*), parameter :: topomodel     = 'etopo2_512_ice6gC '       ! Bedrock topography (NO ICE INCLUDED!!) at time = 0ka       
-   character(*), parameter :: topo_initial  = 'etopo2_512_ice6gC' 
+   ! character(4), parameter :: ext = ''    ! '.txt' | ''   ! Common file extension
+   ! character(*), parameter :: whichplanet   = 'earth'                  ! e.g. 'earth', 'Mars', etc.
+   ! character(*), parameter :: planetmodel   = 'prem_coll_512.l120C.ump5.lm5' ! For now, this is generated from maxwell.f by JXM
+   ! character(*), parameter :: icemodel      = 'iceload'             ! Common name of ice files in 'inputfolder_ice'
+   ! character(*), parameter :: icemodel_out  = 'iceload'          ! Name of ice files in 'outputfolder_ice'
+   ! character(*), parameter :: timearray     = 'times'                  ! Name of times array text file
+   ! character(*), parameter :: topomodel     = 'etopo2_512_ice6gC '       ! Bedrock topography (NO ICE INCLUDED!!) at time = 0ka       
+   ! character(*), parameter :: topo_initial  = 'etopo2_512_ice6gC' 
    
    ! Model parameters==================================================================================================!
    integer, parameter :: norder = 512           ! Max spherical harmonic degree/order
@@ -105,23 +105,23 @@ module user_specs_mod
                                                 !  (if doing a convergence check for outer loop, see below)
 
    ! CHECK TRUE OR FALSE ==============================================================================================!
-   logical, parameter :: checkmarine = .false.  ! .true. to check for floating marine-based ice
-                                                ! .false. to assume all ice is grounded
-   logical, parameter :: tpw = .true.           ! .true. to incorporate rotational feedback								                                                                                   ! .false. for non-rotating planet												
-   logical, parameter :: calcRG = .false.       ! .true. to calculate the radial and geoid displacements; note that  
-                                                !    the "true" option only works for a fixed number of outer loops 
-                                                !    (i.e., no convergence checks!).
-                                                ! .false. to only calculate RSL. 
-   logical, parameter :: input_times = .false.  ! .true. if time array is provided from an existing text file                                                                                              ! .false. if timearray is calculated within the main code                              
-   logical, parameter :: initial_topo = .true. ! .true. initial topo is known
-                                                ! .false. the code assumes initial topography is equal to modern 
-                                                !      topography file "truetopo"
-   logical, parameter :: iceVolume = .true.     ! .true. to output ice volume at each time step
-   logical, parameter :: coupling = .false.      ! .true. if the SLM is coupled to the ISM
-                                                ! .false. if not coupled                                 
-   logical, parameter :: patch_ice = .false.    ! .true. patch ice data with zeros
-                                                ! .false. merge the icemodel files with ice grids provided by the ISM
-                                                !. patch_ice is only activated when 'coupling' is .true.
+   ! logical, parameter :: checkmarine = .false.  ! .true. to check for floating marine-based ice
+   !                                              ! .false. to assume all ice is grounded
+   ! logical, parameter :: tpw = .true.           ! .true. to incorporate rotational feedback								                                                                                   ! .false. for non-rotating planet												
+   ! logical, parameter :: calcRG = .false.       ! .true. to calculate the radial and geoid displacements; note that  
+   !                                              !    the "true" option only works for a fixed number of outer loops 
+   !                                              !    (i.e., no convergence checks!).
+   !                                              ! .false. to only calculate RSL. 
+   ! logical, parameter :: input_times = .false.  ! .true. if time array is provided from an existing text file                                                                                              ! .false. if timearray is calculated within the main code                              
+   ! logical, parameter :: initial_topo = .true. ! .true. initial topo is known
+   !                                              ! .false. the code assumes initial topography is equal to modern 
+   !                                              !      topography file "truetopo"
+   ! logical, parameter :: iceVolume = .true.     ! .true. to output ice volume at each time step
+   ! logical, parameter :: coupling = .false.      ! .true. if the SLM is coupled to the ISM
+   !                                              ! .false. if not coupled                                 
+   ! logical, parameter :: patch_ice = .false.    ! .true. patch ice data with zeros
+   !                                              ! .false. merge the icemodel files with ice grids provided by the ISM
+   !                                              !. patch_ice is only activated when 'coupling' is .true.
                                 
    !Time Window parameters=======================================================================================!
 
@@ -134,19 +134,19 @@ module user_specs_mod
    ! if you would like a forward simulation WITHOUT a timewindow, simply set 'L_sim' equal to 'Ldt1',
    ! and set Ldt2, Ldt3 and Ldt4 to 0. 
 
-   integer, parameter :: L_sim = 21000! total length of a simulation, in years
+   ! integer, parameter :: L_sim = 21000! total length of a simulation, in years
    
-   !internal time step intervals (dt's cannot be set as 0 but Ldt's can be)
-   !**NOTE** dt# values should be defined such that dt#/dt1 is a positive integer
-   integer, parameter :: dt1 = 200! the finest time interval in the TW (in years), usually equal to coupling time step
-   integer, parameter :: dt2 = 0!  
-   integer, parameter :: dt3 = 0!
-   integer, parameter :: dt4 = 0! 
+   ! !internal time step intervals (dt's cannot be set as 0 but Ldt's can be)
+   ! !**NOTE** dt# values should be defined such that dt#/dt1 is a positive integer
+   ! integer, parameter :: dt1 = 200! the finest time interval in the TW (in years), usually equal to coupling time step
+   ! integer, parameter :: dt2 = 0!  
+   ! integer, parameter :: dt3 = 0!
+   ! integer, parameter :: dt4 = 0! 
    
-   integer, parameter :: Ldt1 = 21000! total length of time over which dt1 covers 
-   integer, parameter :: Ldt2 = 0! 
-   integer, parameter :: Ldt3 = 0!
-   integer, parameter :: Ldt4 = 0!
+   ! integer, parameter :: Ldt1 = 21000! total length of time over which dt1 covers 
+   ! integer, parameter :: Ldt2 = 0! 
+   ! integer, parameter :: Ldt3 = 0!
+   ! integer, parameter :: Ldt4 = 0!
 
 
    
@@ -229,6 +229,58 @@ implicit none
 !=======================================================================================================================!
 !                                             VARIABLES                                                                 !
 !________________________________________________(Edit with caution)____________________________________________________!
+
+!=============================== Variables for input/output directories ================================================!
+character(*) :: inputfolder_ice
+character(*) :: inputfolder
+character(*) :: planetfolder
+character(*) :: gridfolder
+character(*) :: outputfolder
+character(*) :: outputfolder_ice
+character(*) :: folder_coupled
+!=======================================================================================================================|
+
+!=============================== Variables for file formatting =========================================================!
+character(*) :: ext
+character(*) :: ftype
+!=======================================================================================================================|
+
+!=============================== Variables for file names ==============================================================!
+character(*) :: planetmodel
+character(*) :: icemodel
+character(*) :: icemodel_out
+character(*) :: timearray
+character(*) :: topomodel
+character(*) :: topo_initial
+character(*) :: grid_lat
+character(*) :: grid_lon
+!=======================================================================================================================|
+
+!=============================== Variables for model configuration =====================================================!
+logical :: checkmarine
+logical :: tpw
+logical :: calcRG
+logical :: input_times
+logical :: initial_topo
+logical :: iceVolume
+logical :: coupling
+logical :: patch_ice
+!=======================================================================================================================|
+
+!=============================== Variables for time window =============================================================!
+integer  :: L_sim
+integer  :: dt1
+integer  :: dt2
+integer  :: dt3
+integer  :: dt4
+integer  :: Ldt1
+integer  :: Ldt2
+integer  :: Ldt3
+integer  :: Ldt4
+!=======================================================================================================================|
+
+!=============================== Other namelist variables ==============================================================!
+character(*) :: whichplanet
 
 !===============================  Variables for ice sheet - sea level model coupling ===================================|
 real, dimension(nglv,2*nglv) :: nh_bedrock        ! Northern Hemispheric bedrock provided by the ice sheet model        |
@@ -385,6 +437,33 @@ if (itersl.lt.1) then
     write(*,*) 'Terminating: program sl_model'
     stop
 endif
+
+! Reading in arguments from namelist
+
+namelist /io_directory/ inputfolder_ice, inputfolder, &
+                        planetfolder, gridfolder, &
+                        outputfolder, outputfolder_ice, &
+                        folder_coupled
+namelist /file_format/ ext, fType
+namelist   /file_name/ planetmodel, icemodel, icemodel_out, &
+                     timearray, topomodel, topo_initial, &
+                     grid_lat,grid_lon
+namelist /model_config/ checkmarine, tpw, calcRG, &
+                        input_times, initial_topo, iceVolume, &
+                        coupling, patch_ice
+namelist /timewindow_config/ L_sim, dt1, dt2, dt3, &
+                             dt4, Ldt1, Ldt2, Ldt3, &
+                             Ldt4
+namelist /others/ whichplanet
+open(201, file='namelist.sealevel', status='old', form='formatted')
+read(201, io_directory)
+read(201, file_format)
+read(201, file_name)
+read(201, model_config)
+read(201, timewindow_config)
+read(201, others)
+
+close(201)
 
 !##################################################################################################################
 !                                       TIME WINDOW PART                                                          #
