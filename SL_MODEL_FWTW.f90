@@ -423,13 +423,6 @@ read (carg(2),*) iter      ! the coupling time step we are on (in years)
 read (carg(3),*) dtime     ! coupling time (in years)
 read (carg(4),*) starttime ! start time of the simulation (in years)
 
-if (dtime /= dt1) then 
-   write(*,*) 'dtime and dt1 should be equal to each other.'
-   write(*,*) 'Please check your set up for the variables'
-   write(*,*) 'Terminating: program sl_model'
-   stop
-endif
-
 if (itersl.lt.1) then 
     write(*,*) 'itersl must be equal to or greather than 1'
     write(*,*) 'itersl = 1: No topography correction'
@@ -464,6 +457,13 @@ read(201, timewindow_config)
 read(201, others)
 
 close(201)
+
+if (dtime /= dt1) then 
+   write(*,*) 'dtime and dt1 should be equal to each other.'
+   write(*,*) 'Please check your set up for the variables'
+   write(*,*) 'Terminating: program sl_model'
+   stop
+endif
 
 !##################################################################################################################
 !                                       TIME WINDOW PART                                                          #
