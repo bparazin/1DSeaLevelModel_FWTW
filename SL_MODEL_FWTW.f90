@@ -1476,15 +1476,16 @@ open(unit = 1, file = outputfolder//'numiter'//ext, form = 'formatted', access =
 write(1,'(I5)') ninner
 close(1)
 
-! Write out the converged rotation-related quantities 
+
+   !BP: Write out the converged rotation-related quantities in new format
 if (tpw) then
-   open(unit = 1, file = outputFolder//'TPW'//ext, &
-   & form = 'formatted', access = 'sequential', status = 'old', position='append')
+   open(unit = 1, file = outputFolder//'TPW'//trim(numstr)//ext, &
+   & form = 'formatted', access = 'sequential', status = 'replace')
 !        write(1,'(9ES19.8E2/,3ES19.8E2/,18ES19.8E2)') dil(:,:,nfiles), dm(:,nfiles), dlambda(:,:,nfiles)
    write(1,'(9ES19.8E2/,3ES19.8E2/,18ES19.8E2)') il(:,:), mm(:), lambda(:,:)
    close(1)
 endif
- 
+
 !      write(*,*) 'dil', dil(:,:,nfiles)
 !      write(*,*) 'dm', dm(:,nfiles)
 !      write(*,*) 'dlambda', dlambda(:,:,nfiles)
