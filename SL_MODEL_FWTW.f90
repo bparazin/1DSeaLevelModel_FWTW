@@ -137,7 +137,6 @@ implicit none
 character(60) :: inputfolder_ice
 character(60) :: inputfolder
 character(60) :: planetfolder
-character(60) :: gridfolder
 character(60) :: outputfolder
 character(60) :: outputfolder_ice
 character(60) :: folder_coupled
@@ -313,8 +312,7 @@ character(3) :: skip                                    ! variable used to skip 
 ! Reading in arguments from namelist
 
 namelist /io_directory/ inputfolder_ice, inputfolder, &
-                        planetfolder, gridfolder, &
-                        outputfolder, outputfolder_ice, &
+                        planetfolder, outputfolder, outputfolder_ice, &
                         folder_coupled
 namelist /file_format/ ext, fType
 namelist   /file_name/ planetmodel, icemodel, icemodel_out, &
