@@ -20,6 +20,8 @@
     topo_initial  = 'etopo2_512_AISbedmap2'    
     grid_lat      = 'GLlat_512.txt'  
     grid_lon      = 'GLlon_512.txt'
+    ism_iceload   = 'NH_iceload'
+    ism_bedrock   = 'NH_bedrock'
 /
 &model_config
     checkmarine = .false.
