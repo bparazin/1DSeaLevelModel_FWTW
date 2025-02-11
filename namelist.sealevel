@@ -2,7 +2,6 @@
     inputfolder_ice = 'INPUT_FILES/icemodel/'
     inputfolder = 'INPUT_FILES/others/'
     planetfolder = 'INPUT_FILES/earthmodel/'
-    gridfolder = 'INPUT_FILES/others/'
     outputfolder = 'OUTPUT_SLM/'
     outputfolder_ice = 'ICELOAD_SLM/'
     folder_coupled = ''
