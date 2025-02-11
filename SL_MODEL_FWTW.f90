@@ -185,7 +185,7 @@ integer  :: Ldt4
 !=======================================================================================================================|
 
 !=============================== Other namelist variables ==============================================================!
-character(*) :: whichplanet
+character(60) :: whichplanet
 
 
 ! Model parameters==================================================================================================!
@@ -312,10 +312,37 @@ character(16) :: carg(20)                               ! Arguments from a bash 
 character(3) :: skip                                    ! variable used to skip lines in reading TPW file 
 
 
+! Reading in arguments from namelist
+
+namelist /io_directory/ inputfolder_ice, inputfolder, &
+                        planetfolder, gridfolder, &
+                        outputfolder, outputfolder_ice, &
+                        folder_coupled
+namelist /file_format/ ext, fType
+namelist   /file_name/ planetmodel, icemodel, icemodel_out, &
+                     timearray, topomodel, topo_initial, &
+                     grid_lat,grid_lon
+namelist /model_config/ checkmarine, tpw, calcRG, &
+                        input_times, initial_topo, iceVolume, &
+                        coupling, patch_ice
+namelist /timewindow_config/ L_sim, dt1, dt2, dt3, &
+                             dt4, Ldt1, Ldt2, Ldt3, &
+                             Ldt4
+namelist /others/ whichplanet
+open(201, file='namelist.sealevel', status='old', form='formatted')
+read(201, io_directory)
+read(201, file_format)
+read(201, file_name)
+read(201, model_config)
+read(201, timewindow_config)
+read(201, others)
+
+close(201)
+
 ! Planetary values
-if (whichplanet == 'earth' .or. whichplanet == 'Earth' .or. whichplanet == 'EARTH') then
+if (trim(adjustl(whichplanet)) == 'earth' .or. trim(adjustl(whichplanet)) == 'Earth' .or. trim(adjustl(whichplanet)) == 'EARTH') then
    call earth_init
-elseif (whichplanet == 'mars' .or. whichplanet == 'Mars' .or. whichplanet == 'MARS') then
+elseif (trim(adjustl(whichplanet)) == 'mars' .or. trim(adjustl(whichplanet)) == 'Mars' .or. trim(adjustl(whichplanet)) == 'MARS') then
    call mars_init
 else
    write(*,*) 'The parameters for the planet you entered are not built in.' 
@@ -343,33 +370,6 @@ if (itersl.lt.1) then
     write(*,*) 'Terminating: program sl_model'
     stop
 endif
-
-! Reading in arguments from namelist
-
-namelist /io_directory/ inputfolder_ice, inputfolder, &
-                        planetfolder, gridfolder, &
-                        outputfolder, outputfolder_ice, &
-                        folder_coupled
-namelist /file_format/ ext, fType
-namelist   /file_name/ planetmodel, icemodel, icemodel_out, &
-                     timearray, topomodel, topo_initial, &
-                     grid_lat,grid_lon
-namelist /model_config/ checkmarine, tpw, calcRG, &
-                        input_times, initial_topo, iceVolume, &
-                        coupling, patch_ice
-namelist /timewindow_config/ L_sim, dt1, dt2, dt3, &
-                             dt4, Ldt1, Ldt2, Ldt3, &
-                             Ldt4
-namelist /others/ whichplanet
-open(201, file='namelist.sealevel', status='old', form='formatted')
-read(201, io_directory)
-read(201, file_format)
-read(201, file_name)
-read(201, model_config)
-read(201, timewindow_config)
-read(201, others)
-
-close(201)
 
 if (dtime /= dt1) then 
    write(*,*) 'dtime and dt1 should be equal to each other.'
