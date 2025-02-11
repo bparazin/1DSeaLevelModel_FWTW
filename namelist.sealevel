@@ -17,9 +17,7 @@
     icemodel_out  = 'iceload_out_'
     timearray     = 'times'
     topomodel     = 'etopo2_512_AISbedmap2' 
-    topo_initial  = 'etopo2_512_AISbedmap2'    
-    grid_lat      = 'GLlat_512.txt'  
-    grid_lon      = 'GLlon_512.txt'
+    topo_initial  = 'etopo2_512_AISbedmap2'
     ism_iceload   = 'NH_iceload'
     ism_bedrock   = 'NH_bedrock'
 /

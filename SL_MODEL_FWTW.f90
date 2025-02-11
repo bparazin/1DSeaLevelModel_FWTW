@@ -155,8 +155,6 @@ character(60) :: icemodel_out
 character(60) :: timearray
 character(60) :: topomodel
 character(60) :: topo_initial
-character(60) :: grid_lat
-character(60) :: grid_lon
 character(60) :: ism_iceload
 character(60) :: ism_bedrock
 !=======================================================================================================================|
@@ -321,7 +319,7 @@ namelist /io_directory/ inputfolder_ice, inputfolder, &
 namelist /file_format/ ext, fType
 namelist   /file_name/ planetmodel, icemodel, icemodel_out, &
                      timearray, topomodel, topo_initial, &
-                     grid_lat, grid_lon, ism_iceload, ism_bedrock
+                     ism_iceload, ism_bedrock
 namelist /model_config/ checkmarine, tpw, calcRG, &
                         input_times, initial_topo, iceVolume, &
                         coupling, patch_ice
