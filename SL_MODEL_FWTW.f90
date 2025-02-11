@@ -1,5 +1,6 @@
 ! SL_MODEL_FWTW.90  - Holly Kyeore Han (PhD Student, McGill University 2015-2021, Advisor: by Natalya Gomez),
-! Sea Level Model with ForWard and TimeWindow algorithm (FWTW). LAST UPDATE: April 1st, 2021 by Holly Han 
+! Further modification made by B. Parazin (PhD Student, McGill University 2023-Present, Advisor: by Natalya Gomez)
+! Sea Level Model with ForWard and TimeWindow algorithm (FWTW). LAST UPDATE: Feb 11th, 2025 by B. "I put the tran in FORTRAN" Parazin
 
 ! The is a FORWARD sea-level model with the timewindow algorithm. The code is modified from SL_TPW.f90, a new, 
 ! benchmarked ice-age sea-level model written by Sam Goldberg, Harvard University EPS '16 (Advised by Jerry Mitrovica) 

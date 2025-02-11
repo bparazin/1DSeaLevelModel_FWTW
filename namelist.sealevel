@@ -1,3 +1,17 @@
+  
+  
+   ! 'inputfolder_ice' stores ice history files (if coupled, this folder provides iceloads outside the ice model domain)
+   ! 'inputfolder' stores files such as modern observed topography, times array, known initial topography
+   ! 'planetfolder': Planetary model directory, input forder for the Earth structure (i.e. PREM files)
+   !  The filename of the desired model (i.e., the Love numbers) given by the planetmodel variable below. This is now 
+   !  incorporated into the planets_mod module below, since automation limits the freedom in naming, which could be 
+   !  complex and highly customized.
+   ! 'outputfolder' stores output files from the sea level model (e.g. SL#, tgrid#, beta#, ocean#, dS_converged#, TPW)
+   ! 'outputfolder_ice' stores global ice cover files, combining the prescribed ice cover outside the ice domain, 
+   !  and the ice cover predicted by the dynamic model. This folder is used only when the SLM is coupled to an ice model.
+   ! 'folder_coupled' stores files that are exchanged between the ice (ism_iceload) and sea level (bedrock) models. It is
+   !  not used if the sea-level model (SLM) is not coupled to an ice sheet model (ISM)
+
 &io_directory
     inputfolder_ice = 'INPUT_FILES/icemodel/'
     inputfolder = 'INPUT_FILES/others/'
@@ -7,40 +21,55 @@
     folder_coupled = ''
 /
 &file_format
-    ext =''
-    fType = 'text'
+    ext ='' ! '.txt' | ''   ! Common file extension
+    fType = 'text'          ! File type (currently only supports text, but I'll add NETCDF support someday)
 /
 &file_name
-    planetmodel   = 'prem_512.l60K2C.sum18p6.dum19p2.tz19p4.lm22'
-    icemodel      = 'iceload5g'
-    icemodel_out  = 'iceload_out_'
-    timearray     = 'times'
-    topomodel     = 'etopo2_512_AISbedmap2' 
+    planetmodel   = 'prem_512.l60K2C.sum18p6.dum19p2.tz19p4.lm22' ! For now, this is generated from maxwell.f by JXM
+    icemodel      = 'iceload5g' ! Common name of ice files in 'inputfolder_ice'
+    icemodel_out  = 'iceload_out_' ! Name of ice files in 'outputfolder_ice'
+    timearray     = 'times' ! Name of times array text file
+    topomodel     = 'etopo2_512_AISbedmap2'  ! Bedrock topography (NO ICE INCLUDED!!) at time = 0ka
     topo_initial  = 'etopo2_512_AISbedmap2'
-    ism_iceload   = 'NH_iceload'
+    ism_iceload   = 'NH_iceload' !Name of files output by SLM of iceload and bedrock, not used if coupling is false
     ism_bedrock   = 'NH_bedrock'
 /
 &model_config
-    checkmarine = .false.
-    tpw = .true.
-    calcRG = .true.
-    input_times = .false.
-    initial_topo = .true.
-    iceVolume = .true.
-    coupling = .false. 
-    patch_ice = .false.
+    checkmarine = .false. ! .true. to check for floating marine-based ice, .false. to assume all ice is grounded
+    tpw = .true. ! .true. to incorporate rotational feedback		
+    calcRG = .true. ! .true. to calculate the radial and geoid displacements; note that  the "true" option only works for a fixed number of outer loops  
+!                    (i.e., no convergence checks!). .false. to only calculate RSL. 
+    input_times = .false. ! .true. if time array is provided from an existing text file 
+    initial_topo = .true. ! .true. initial topo is known .false. the code assumes initial topography is equal to modern topography file "truetopo"
+    iceVolume = .true. ! .true. to output ice volume at each time step
+    coupling = .false. ! .true. if the SLM is coupled to the ISM    
+    patch_ice = .false. ! .true. patch ice data with zeros .false. merge the icemodel files with ice grids provided by the ISM
 /
+
+   !Time Window parameters=======================================================================================!
+
+   !                      |--------- total length of a time window------------|
+   
+   !  schematic diagram   |--------dt4--------|------dt3------|---dt2---|-dt1-|
+   !  of a timewindow          past                                        current time step
+
+
+   ! if you would like a forward simulation WITHOUT a timewindow, simply set 'L_sim' equal to 'Ldt1',
+   ! and set Ldt2, Ldt3 and Ldt4 to 0. 
+   
+   !internal time step intervals (dt's cannot be set as 0 but Ldt's can be)
+   !**NOTE** dt# values should be defined such that dt#/dt1 is a positive integer
 &timewindow_config
     L_sim = 20
-    dt1 = 5
+    dt1 = 5 ! the finest time interval in the TW (in years), usually equal to coupling time step
     dt2 = 10
     dt3 = 10
     dt4 = 10
-    Ldt1 = 20
+    Ldt1 = 20 ! total length of time over which dt1 covers 
     Ldt2 = 0
     Ldt3 = 0
     Ldt4 = 0
 /
 &others
-    whichplanet = 'earth'
+    whichplanet = 'earth' ! e.g. 'earth', 'Mars', etc.
 /
