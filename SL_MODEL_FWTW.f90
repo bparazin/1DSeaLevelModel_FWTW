@@ -317,8 +317,9 @@ namelist /io_directory/ inputfolder_ice, inputfolder, &
                         folder_coupled
 namelist /file_format/ ext, fType
 namelist   /file_name/ planetmodel, icemodel, icemodel_out, &
-                     timearray, topomodel, topo_initial, &
-                     ism_iceload, ism_bedrock
+                     timearray, topomodel, topo_initial
+                     
+namelist /shared/ ism_iceload, ism_bedrock
 namelist /model_config/ checkmarine, tpw, calcRG, &
                         input_times, initial_topo, iceVolume, &
                         coupling, patch_ice
@@ -330,6 +331,7 @@ open(201, file='namelist.sealevel', status='old', form='formatted')
 read(201, io_directory)
 read(201, file_format)
 read(201, file_name)
+read(201, shared)
 read(201, model_config)
 read(201, timewindow_config)
 read(201, others)
