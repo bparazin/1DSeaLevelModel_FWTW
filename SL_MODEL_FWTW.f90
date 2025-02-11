@@ -1464,16 +1464,6 @@ open(unit = 1, file = trim(adjustl(outputfolder))//'numiter'//trim(adjustl(ext))
 write(1,'(I5)') ninner
 close(1)
 
-
-   !BP: Write out the converged rotation-related quantities in new format
-if (tpw) then
-   open(unit = 1, file = trim(adjustl(outputFolder))//'TPW'//trim(numstr)//trim(adjustl(ext)), &
-   & form = 'formatted', access = 'sequential', status = 'replace')
-!        write(1,'(9ES19.8E2/,3ES19.8E2/,18ES19.8E2)') dil(:,:,nfiles), dm(:,nfiles), dlambda(:,:,nfiles)
-   write(1,'(9ES19.8E2/,3ES19.8E2/,18ES19.8E2)') il(:,:), mm(:), lambda(:,:)
-   close(1)
-endif
-
 !      write(*,*) 'dil', dil(:,:,nfiles)
 !      write(*,*) 'dm', dm(:,nfiles)
 !      write(*,*) 'dlambda', dlambda(:,:,nfiles)
@@ -1535,6 +1525,15 @@ if (nmelt.GT.0) then
 !   & status = 'replace')
 !   write(1,'(ES16.9E2)') tinit_0(:,:)-topoxy(:,:)
 !   close(1)
+
+   !BP: Write out the converged rotation-related quantities in new format
+   if (tpw) then
+      open(unit = 1, file = trim(adjustl(outputFolder))//'TPW'//trim(numstr)//trim(adjustl(ext)), &
+      & form = 'formatted', access = 'sequential', status = 'replace')
+   !        write(1,'(9ES19.8E2/,3ES19.8E2/,18ES19.8E2)') dil(:,:,nfiles), dm(:,nfiles), dlambda(:,:,nfiles)
+      write(1,'(9ES19.8E2/,3ES19.8E2/,18ES19.8E2)') il(:,:), mm(:), lambda(:,:)
+      close(1)
+   endif
 
    !HH: print out the nmelt
    open(unit = 1, file = trim(adjustl(outputfolder))//'nmelt'//trim(adjustl(ext)), form = 'formatted', access ='sequential', &
