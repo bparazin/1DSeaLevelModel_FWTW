@@ -1158,7 +1158,6 @@ call spat2spec(tinit(:,:), t0lm, spheredat)
 do n=1, nfiles
    ! Calculate icestar (STEP 3) (eq.43)
    if (checkmarine) then
-      write (*, *) 'Performing Marine Check'
       do j = 1,2*nglv
          do i = 1,nglv
             if (tinit(i,j) > 0) then 
