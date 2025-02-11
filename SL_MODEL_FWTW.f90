@@ -321,7 +321,7 @@ namelist /io_directory/ inputfolder_ice, inputfolder, &
 namelist /file_format/ ext, fType
 namelist   /file_name/ planetmodel, icemodel, icemodel_out, &
                      timearray, topomodel, topo_initial, &
-                     grid_lat,grid_lon
+                     grid_lat, grid_lon, ism_iceload, ism_bedrock
 namelist /model_config/ checkmarine, tpw, calcRG, &
                         input_times, initial_topo, iceVolume, &
                         coupling, patch_ice
