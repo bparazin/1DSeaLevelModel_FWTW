@@ -128,6 +128,7 @@ program sl_model
 !_______________________________________________________________________________________________________________________!
 use spharmt
 use planets_mod
+use netcdf
 implicit none
 
 !=======================================================================================================================!
@@ -309,6 +310,8 @@ integer :: iargc, nargs                                 ! Arguments read in from
 character(16) :: carg(20)                               ! Arguments from a bash script
 character(3) :: skip                                    ! variable used to skip lines in reading TPW file 
 
+! For netcdf I/O
+integer :: rcode
 
 ! Reading in arguments from namelist
 
@@ -1636,6 +1639,18 @@ if (nmelt.GT.0) then
    endif !endif coupling
 
 endif !endif nmaelt>0
+
+deallocate (times, lovebetatt, lovebetattrr)
+deallocate (lovebetarr,lovebeta)
+deallocate (icexy,sl)                     
+deallocate (dS,deltaS)   
+deallocate (dicestar, deltaicestar)               
+deallocate (rr,gg)      
+deallocate (dil, dlambda,deltalambda)
+deallocate (dm)   
+deallocate (mask,iceload,icefiles)
+deallocate (TIMEWINDOW)      
+
 
 call system_clock(countf) ! Total time
 call cpu_time(countf_cpu)
