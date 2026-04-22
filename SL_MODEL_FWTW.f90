@@ -87,7 +87,7 @@ module planets_mod
    !___________________________________________________________________________________________________________________!
       radius = 6.371E6              ! Radius of the Earth (m)
       mass = 5.976E24               ! Mass of the Earth (kg)
-      rhoi = 920.0                  ! Density of ice (kg/m^3)
+      rhoi = 917.0                  ! Density of ice (kg/m^3)
       rhow = 1000.0                 ! Density of fresh water (kg/m^3)
       gacc = 9.80665                ! Acceleration due to gravity at the Earth's surface (m/s^2)
       omega = 7.292e-5              ! Rotation rate of the Earth (rad/s)
@@ -169,6 +169,7 @@ logical :: initial_topo
 logical :: iceVolume
 logical :: coupling
 logical :: patch_ice
+logical :: netcdfOutput
 !=======================================================================================================================|
 
 !=============================== Variables for time window =============================================================!
@@ -223,9 +224,10 @@ integer, dimension(4) :: int_dt, Rdt, Ndt, Ldt         !   Values of internal ti
 real, dimension(:), allocatable :: times        ! Timesteps of ice model (years)                                        |
 real, dimension(:,:,:), allocatable :: icexy    ! Spatial inputs of ice model                                           |   
 real, dimension(:,:,:), allocatable :: sl       ! Big arrays of sea level change                                        |
-complex, dimension(:,:,:), allocatable:: dicestar,dS,deltaicestar,deltaS ! Big arrays of changes in loads               |
+complex, dimension(:,:,:), allocatable:: dicestar,dS,deltaicestar,deltaS! Big arrays of changes in loads               |
                                                                                        !  used in Love number viscous   | 
-                                                                                       !  response                      |
+                                                                                       !  response    
+complex, dimension(:,:), allocatable :: Clm,Slm                   |  ! GRDMIP outputs
 real, dimension(:,:,:), allocatable :: rr,gg                         !  R and G (radial displacement and geoid change)  |
 complex, dimension(:,:,:), allocatable :: dlambda, deltalambda       ! Big arrays of changes in rotational driving      |
 real, dimension(:,:,:), allocatable :: dil                           ! Big array of changes in IL                       |
@@ -259,13 +261,14 @@ real, dimension(nglv,2*nglv) :: beta, cstarxy, cstar0    ! Grounded ice mask, ic
 real, dimension(nglv,2*nglv) :: tOxy, rOxy, tTxy         ! Projections used to calculate loads and shoreline migration
 complex, dimension(0:norder,0:norder) :: cstarlm,oldcstarlm,tOlm,rOlm,dSlm,olddSlm,&
                                          icestarlm,dicestarlm,deltaicestarlm,oldicestarlm,icestar0, &
-                                         t0lm,oldt0lm,tTlm,oldtTlm,dsllm,deltasllm  ! Above, in spectral domain
+                                         t0lm,oldt0lm,tTlm,oldtTlm,dsllm,deltasllm,icelm  ! Above, in spectral domain
 
 real :: conserv                                          ! Uniform geoid shift (ΔΦ/g)
 real :: ttl, ekhl                                        ! Used in Love number calculations
 complex, dimension(0:norder,0:norder) :: viscous         ! Used in Love number calculations
 real :: xi, zeta                                         ! Convergence checks
-real :: ice_volume                                ! ice volume 
+real :: ice_volume, grounded_ice_volume                  ! ice volume, if checkmarine is false, these will be same as model assumes
+                                                         ! all ice is grounded
 ! For calculating R and G separately
 real, dimension(nglv,2*nglv) :: rrxy, drrxy_computed
 complex, dimension(0:norder,0:norder) :: rrlm, dgglm, drrlm_computed
@@ -311,7 +314,13 @@ character(16) :: carg(20)                               ! Arguments from a bash 
 character(3) :: skip                                    ! variable used to skip lines in reading TPW file 
 
 ! For netcdf I/O
-integer :: rcode
+integer :: rcode, ncid, varid, lenattr, ncerr
+integer :: ival4, jval4
+integer :: xid, yid, timid, ordid, degid
+integer(4) :: idim, start, count
+character(16) :: cvar, cunits
+character(80) :: cruntitle, cvarl
+character(*), parameter :: chist = 'SL_model.nc'
 
 ! Reading in arguments from namelist
 
@@ -325,7 +334,7 @@ namelist   /file_name/ planetmodel, icemodel, icemodel_out, &
 namelist /shared/ ism_iceload, ism_bedrock
 namelist /model_config/ checkmarine, tpw, calcRG, &
                         input_times, initial_topo, iceVolume, &
-                        coupling, patch_ice
+                        coupling, patch_ice, netcdfOutput
 namelist /timewindow_config/ L_sim, dt1, dt2, dt3, &
                              dt4, Ldt1, Ldt2, Ldt3, &
                              Ldt4
@@ -537,6 +546,7 @@ allocate (times(nfiles), lovebetatt(nfiles), lovebetattrr(nfiles))
 allocate (lovebetarr(nfiles,norder),lovebeta(nfiles,norder))
 allocate (icexy(nglv, 2*nglv, nfiles),sl(nglv,2*nglv,nfiles))                     
 allocate (dS(0:norder,0:norder,nfiles),deltaS(0:norder,0:norder,nfiles))   
+allocate (Clm(0:norder,0:norder),Slm(0:norder,0:norder))   
 allocate (dicestar(0:norder,0:norder,nfiles), deltaicestar(0:norder,0:norder,nfiles))               
 allocate (rr(nglv,2*nglv,nfiles),gg(nglv,2*nglv,nfiles))      
 allocate (dil(3,3,nfiles), dlambda(0:2,0:2,TW_nfiles),deltalambda(0:2,0:2,nfiles))
@@ -820,12 +830,14 @@ if (nmelt==0) then
                icestarxy(:,:) = icexy(:,:,1)
             endif
             call spat2spec(icestarxy(:,:),icestarlm(:,:),spheredat)
+            call spat2spec(icexy(:,:), icelm(:,:), spheredat)
 
-        ice_volume = icestarlm(0,0)*4*pi*radius**2
+        grounded_ice_volume = icestarlm(0,0)*4*pi*radius**2
+        ice_volume = icelm(0,0)*4*pi*radius**2
 
         open(unit = 1, file = trim(adjustl(outputfolder))//'ice_volume'//trim(adjustl(ext)), form = 'formatted', access ='sequential', &
         & status = 'replace')
-        write(1,'(ES14.4E2)') ice_volume
+        write(1,'(ES14.4E2)') grounded_ice_volume
         close(1)
     endif
    
@@ -838,6 +850,320 @@ if (nmelt==0) then
     open(unit = 1, file = trim(adjustl(outputfolder))//'nmelt'//trim(adjustl(ext)), form = 'formatted', access ='sequential', &
     & status = 'replace')
     close(1)
+
+    !BP: initalize netcdf database
+    if (netcdfOutput) then
+      rcode = nf_create(chist, nf_clobber, ncid)
+      write(*,*) 'CREATING NEW NETCDF FILE'
+      ! check RCODE
+
+
+      cruntitle = 'Sea level model run'
+      lenattr = lenchr(cruntitle)
+      rcode = nf_put_att_text(ncid, ncglobal, 'title', lenattr, cruntitle)
+
+      rcode = nf_def_dim(ncid, 'lon', nglv*2, xid)
+      rcode = nf_def_var(ncid, 'lon', nf_float, 1, xid, varid)
+      rcode = nf_put_att_text(ncid, varid, 'units', 12, 'degrees_east')
+      rcode = nf_put_att_text(ncid, varid, 'FORTRAN_format', 4, 'f8.3')
+      rcode = nf_enddef(ncid)
+      rcode = nf_put_vara_double(ncid, varid, 1, nglv*2, __) !put lon data into netcdf
+      rcode = nf_redef(ncid)
+
+      rcode = nf_def_dim(ncid, 'lat', nglv, yid)
+      rcode = nf_def_var(ncid, 'lat', nf_float, 1, yid, varid)
+      rcode = nf_put_att_text(ncid, varid, 'units', 13, 'degrees_north')
+      rcode = nf_put_att_text(ncid, varid, 'FORTRAN_format', 4, 'f8.3')
+      rcode = nf_enddef(ncid)
+      rcode = nf_put_vara_double(ncid, varid, 1, nglv, __) !put lat data into netcdf
+      rcode = nf_redef(ncid)
+
+      !add degree and order dimensions
+      rcode = nf_def_dim(ncid, 'degree', norder, degid)
+      rcode = nf_def_var(ncid, 'degree', nf_integer, 1, degid, varid)
+      rcode = nf_put_att_text(ncid, varid, 'units', 8, 'unitless')
+      rcode = nf_put_att_text(ncid, varid, 'FORTRAN_format', __, __)
+      rcode = nf_enddef(ncid)
+      rcode = nf_put_vara_integer(ncid, varid, 1, norder, __) !put degree into netcdf
+      rcode = nf_redef(ncid)
+
+      rcode = nf_def_dim(ncid, 'order', norder, ordid)
+      rcode = nf_def_var(ncid, 'order', nf_integer, 1, ordid, varid)
+      rcode = nf_put_att_text(ncid, varid, 'units', 8, 'unitless')
+      rcode = nf_put_att_text(ncid, varid, 'FORTRAN_format', __, __)
+      rcode = nf_enddef(ncid)
+      rcode = nf_put_vara_integer(ncid, varid, 1, norder, __) !put order into netcdf
+      rcode = nf_redef(ncid)
+
+      !add time dimension
+      rcode = nf_def_dim(ncid, 'time', ncunlim, timid)
+      rcode = nf_def_var(ncid, 'time', nf_float, 1, timid, varid)
+      rcode = nf_put_att_text(ncid, varid, 'long_name', 4, 'year')
+      rcode = nf_put_att_text(ncid, varid, 'units', 5, 'years')
+      rcode = nf_put_att_text(ncid, varid, 'FORTRAN_FORMAT', 5, 'f12.3')
+
+      !Variable dimensions and attrs
+
+      !1D variables (only time)
+      ndim    = 1
+      idim(1) = timid
+
+      !ice volume
+      cvar = 'ice_vol'
+      cvarl = 'ice volume'
+      cunits = 'm3'
+      ival4 = lenchr(cvarl)
+      jval4 = lenchr(cunits)
+      rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+      rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
+      rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)      
+   !additional new grdmip outputs
+      !grounded ice mass
+      cvar = 'grd_ice_mass'
+      cvarl = 'grounded ice mass'
+      cunits = 'kg'
+      ival4 = lenchr(cvarl)
+      jval4 = lenchr(cunits)
+      rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+      rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
+      rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)    
+      !total ice mass
+      cvar = 'tot_ice_mass'
+      cvarl = 'total ice mass'
+      cunits = 'kg'
+      ival4 = lenchr(cvarl)
+      jval4 = lenchr(cunits)
+      rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+      rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
+      rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)    
+      !barystatic sea level change
+      cvar = 'bslc'
+      cvarl = 'barystatic sea level change'
+      cunits = 'm'
+      ival4 = lenchr(cvarl)
+      jval4 = lenchr(cunits)
+      rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+      rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
+      rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)    
+      !mean delta g
+      cvar = 'mean_delta_g'
+      cvarl = 'Ocean area mean of changes in geoid'
+      cunits = 'm'
+      ival4 = lenchr(cvarl)
+      jval4 = lenchr(cunits)
+      rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+      rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
+      rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)
+
+      !3D variables (lat, lon, time)
+      ndim    = 3
+      idim(1) = yid
+      idim(2) = xid
+      idim(3) = timid
+      
+      !beta
+      cvar = 'beta'
+      cvarl = 'Grounded ice mask'
+      cunits = 'none'
+      ival4 = lenchr(cvarl)
+      jval4 = lenchr(cunits)
+      rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+      rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
+      rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)
+      !ocean
+      cvar = 'Ocean'
+      cvarl = 'Ocean mask'
+      cunits = 'none'
+      ival4 = lenchr(cvarl)
+      jval4 = lenchr(cunits)
+      rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+      rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
+      rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)
+      !tgrid
+      cvar = 'tgrid'
+      cvarl = 'Topography'
+      cunits = 'm'
+      ival4 = lenchr(cvarl)
+      jval4 = lenchr(cunits)
+      rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+      rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
+      rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)
+      !delta R
+      cvar = 'delta_r'
+      cvarl = 'changes in bedrock height'
+      cunits = 'm'
+      ival4 = lenchr(cvarl)
+      jval4 = lenchr(cunits)
+      rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+      rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
+      rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)
+      !delta G
+      cvar = 'delta_g'
+      cvarl = 'Changes in geopotential height'
+      cunits = 'm'
+      ival4 = lenchr(cvarl)
+      jval4 = lenchr(cunits)
+      rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+      rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
+      rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)
+   !additional new grdmip outputs
+      !Bed (R)
+      cvar = 'bed'
+      cvarl = 'bed/seafloor'
+      cunits = 'm'
+      ival4 = lenchr(cvarl)
+      jval4 = lenchr(cunits)
+      rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+      rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
+      rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)
+      !delta rsl
+      cvar = 'delta_rsl'
+      cvarl = 'changes in local ocean depth'
+      cunits = 'm'
+      ival4 = lenchr(cvarl)
+      jval4 = lenchr(cunits)
+      rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+      rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
+      rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)
+
+
+      !3D variables (degree, order, time)
+
+      ndim    = 3
+      idim(1) = degid
+      idim(2) = ordid
+      idim(3) = timid
+
+      !dS_converged
+      cvar = 'dS_converged'
+      cvarl = 'Sea surface height in spectral coordinates'
+      cunits = 'unitless'
+      ival4 = lenchr(cvarl)
+      jval4 = lenchr(cunits)
+      rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+      rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
+      rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)
+      
+   !additional new grdmip outputs
+      !Clm
+      cvar = 'Clm'
+      cvarl = 'C_lm Stokes coefficients of changes in the gravity field wrt the initial simulation time'
+      cunits = 'unitless'
+      ival4 = lenchr(cvarl)
+      jval4 = lenchr(cunits)
+      rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+      rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
+      rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)
+      !Slm
+      cvar = 'Slm'
+      cvarl = 'S_lm Stokes coefficients of changes in the gravity field wrt the initial simulation time'
+      cunits = 'unitless'
+      ival4 = lenchr(cvarl)
+      jval4 = lenchr(cunits)
+      rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+      rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
+      rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)
+
+      !Leave define mode
+      rcode = nf_enddef(ncid)
+
+      !add start time to time dimension
+      rcode = nf_inq_varid(ncid, 'year', varid)
+      rcode = nf_put_var1_double(ncid, varid, iter+1, starttime) 
+
+      !write fields
+      !1D fields
+      start(1) = iter + 1
+      count(1) = 1
+
+      rcode = nf_inq_varid(ncid, 'ice_vol', varid)
+      rcode = nf_put_vara_double(ncid, varid, start, count, ice_volume)
+
+      rcode = nf_inq_varid(ncid, 'grd_ice_mass', varid)
+      rcode = nf_put_vara_double(ncid, varid, start, count, grounded_ice_volume*rhoi)
+
+      rcode = nf_inq_varid(ncid, 'tot_ice_mass', varid)
+      rcode = nf_put_vara_double(ncid, varid, start, count, ice_volume*rhoi)
+
+      rcode = nf_inq_varid(ncid, 'bslc', varid)
+      rcode = nf_put_vara_double(ncid, varid, start, count, 0) !no change in barystatic sea level at initial time step
+
+      rcode = nf_inq_varid(ncid, mean_delta_g, varid)
+      rcode = nf_put_vara_double(ncid, varid, start, count, 0) !no change in delta g at initial time step
+
+      !3D fields
+      !y,x,time
+      start(1) = 1
+      count(1) = nglv
+      start(2) = 1
+      count(2) = nglv*2
+      start(3) = iter + 1
+      count(3) = 1
+
+      rcode = nf_inq_varid(ncid, 'beta', varid)
+      rcode = nf_put_vara_double(ncid, varid, start, count, beta0)
+
+      rcode = nf_inq_varid(ncid, 'Ocean', varid)
+      rcode = nf_put_vara_double(ncid, varid, start, count, cxy0)
+
+      rcode = nf_inq_varid(ncid, 'tgrid', varid)
+      rcode = nf_put_vara_double(ncid, varid, start, count, tinit_0)
+
+      rr(:,:,1) = 0
+      gg(:,:,1) = 0 !no change in r or g at first timestep
+      rcode = nf_inq_varid(ncid, 'delta_r', varid)
+      rcode = nf_put_vara_double(ncid, varid, start, count, rr(:,:,1))
+
+      rcode = nf_inq_varid(ncid, 'delta_g', varid)
+      rcode = nf_put_vara_double(ncid, varid, start, count, gg(:,:,1))
+
+      rcode = nf_inq_varid(ncid, 'bed', varid)
+      rcode = nf_put_vara_double(ncid, varid, start, count, tinit_0) !at time t=0, reference ellipsoid is G, so bed is sea level
+                                                                     !at all future timesteps, it is instead tinit_0+delta_r
+
+      deltaslxy = 0 !no change in sea level at first timestep too
+      rcode = nf_inq_varid(ncid, 'delta_rsl', varid)
+      rcode = nf_put_vara_double(ncid, varid, start, count, deltaslxy)
+
+      !degree, order, time
+      start(1) = 1
+      count(1) = norder
+      start(2) = 1
+      count(2) = norder
+      start(3) = iter + 1
+      count(3) = 1
+
+      rcode = nf_inq_varid(ncid, 'dS_converged', varid)
+      rcode = nf_put_vara_double(ncid, varid, start, count, deltaS(:,:,1))
+
+      Clm = 0
+      Slm = 0 !both Clm and Slm are with respect to the original time so initalize at zero
+      rcode = nf_inq_varid(ncid, 'Clm', varid)
+      rcode = nf_put_vara_double(ncid, varid, start, count, Clm)
+
+      rcode = nf_inq_varid(ncid, 'Slm', varid)
+      rcode = nf_put_vara_double(ncid, varid, start, count, Clm)
+
+      rcode = nf_redef(ncid)
+      rcode = nf_close(ncid)
+      !CHECK RCODE
+
+    endif
 
     write(*,*) 'DONE INITIALIZATION. EXITING THE PROGRAM'
     call exit
@@ -1571,10 +1897,10 @@ if (nmelt.GT.0) then
    close(1)
    
    if (iceVolume) then
-	  ice_volume = icestarlm(0,0)*4*pi*radius**2 !multiply the (0,0) component of ice to the area of a sphere
+	  grounded_ice_volume = icestarlm(0,0)*4*pi*radius**2 !multiply the (0,0) component of ice to the area of a sphere
       open(unit = 1, file = trim(adjustl(outputfolder))//'ice_volume'//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
       & status = 'old', position = 'append')
-      write(1,'(ES14.4E2)') ice_volume
+      write(1,'(ES14.4E2)') grounded_ice_volume
       close(1)
    endif
    
@@ -1643,6 +1969,7 @@ endif !endif nmaelt>0
 deallocate (times, lovebetatt, lovebetattrr)
 deallocate (lovebetarr,lovebeta)
 deallocate (icexy,sl)                     
+deallocate (Clm,Slm)   
 deallocate (dS,deltaS)   
 deallocate (dicestar, deltaicestar)               
 deallocate (rr,gg)      

@@ -44,6 +44,7 @@
     iceVolume = .true. ! .true. to output ice volume at each time step
     coupling = .false. ! .true. if the SLM is coupled to the ISM    
     patch_ice = .false. ! .true. patch ice data with zeros .false. merge the icemodel files with ice grids provided by the ISM
+    netcdfOutput = .true. !.true. to outbut a netcdf of results
 /
 
    !Time Window parameters=======================================================================================!
