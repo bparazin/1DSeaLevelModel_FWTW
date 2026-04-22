@@ -317,10 +317,13 @@ character(3) :: skip                                    ! variable used to skip 
 integer :: rcode, ncid, varid, lenattr, ncerr
 integer :: ival4, jval4
 integer :: xid, yid, timid, ordid, degid
-integer(4) :: idim, start, count
+integer, dimension(4) :: idim, start, count
 character(16) :: cvar, cunits
 character(80) :: cruntitle, cvarl
 character(*), parameter :: chist = 'SL_model.nc'
+integer, dimension(0:norder) :: order_list, degree_list
+real, dimension(nglv) :: lat
+real, dimension(2*nglv) :: lon
 
 ! Reading in arguments from namelist
 
@@ -862,12 +865,28 @@ if (nmelt==0) then
       lenattr = lenchr(cruntitle)
       rcode = nf_put_att_text(ncid, ncglobal, 'title', lenattr, cruntitle)
 
+      do i = 1,nglv
+         lat(i) = 180./(1.0*nglv)
+      enddo
+
+      do i = 1,2*nglv
+         lon(i) = 360./(2.*nglv)
+      enddo
+
+      do i = 0,norder
+         degree_list(i) = i
+      enddo
+
+      do i = 0,norder
+         order_list(i) = i
+      enddo
+
       rcode = nf_def_dim(ncid, 'lon', nglv*2, xid)
       rcode = nf_def_var(ncid, 'lon', nf_float, 1, xid, varid)
       rcode = nf_put_att_text(ncid, varid, 'units', 12, 'degrees_east')
       rcode = nf_put_att_text(ncid, varid, 'FORTRAN_format', 4, 'f8.3')
       rcode = nf_enddef(ncid)
-      rcode = nf_put_vara_double(ncid, varid, 1, nglv*2, __) !put lon data into netcdf
+      rcode = nf_put_vara_double(ncid, varid, 1, nglv*2, lon) !put lon data into netcdf
       rcode = nf_redef(ncid)
 
       rcode = nf_def_dim(ncid, 'lat', nglv, yid)
@@ -875,24 +894,24 @@ if (nmelt==0) then
       rcode = nf_put_att_text(ncid, varid, 'units', 13, 'degrees_north')
       rcode = nf_put_att_text(ncid, varid, 'FORTRAN_format', 4, 'f8.3')
       rcode = nf_enddef(ncid)
-      rcode = nf_put_vara_double(ncid, varid, 1, nglv, __) !put lat data into netcdf
+      rcode = nf_put_vara_double(ncid, varid, 1, nglv, lat) !put lat data into netcdf
       rcode = nf_redef(ncid)
 
       !add degree and order dimensions
       rcode = nf_def_dim(ncid, 'degree', norder, degid)
       rcode = nf_def_var(ncid, 'degree', nf_integer, 1, degid, varid)
       rcode = nf_put_att_text(ncid, varid, 'units', 8, 'unitless')
-      rcode = nf_put_att_text(ncid, varid, 'FORTRAN_format', __, __)
+      rcode = nf_put_att_text(ncid, varid, 'FORTRAN_format', 2, 'I4')
       rcode = nf_enddef(ncid)
-      rcode = nf_put_vara_integer(ncid, varid, 1, norder, __) !put degree into netcdf
+      rcode = nf_put_vara_integer(ncid, varid, 1, norder+1, degree_list) !put degree into netcdf
       rcode = nf_redef(ncid)
 
       rcode = nf_def_dim(ncid, 'order', norder, ordid)
       rcode = nf_def_var(ncid, 'order', nf_integer, 1, ordid, varid)
       rcode = nf_put_att_text(ncid, varid, 'units', 8, 'unitless')
-      rcode = nf_put_att_text(ncid, varid, 'FORTRAN_format', __, __)
+      rcode = nf_put_att_text(ncid, varid, 'FORTRAN_format', 2, 'I4')
       rcode = nf_enddef(ncid)
-      rcode = nf_put_vara_integer(ncid, varid, 1, norder, __) !put order into netcdf
+      rcode = nf_put_vara_integer(ncid, varid, 1, norder+1, order_list) !put order into netcdf
       rcode = nf_redef(ncid)
 
       !add time dimension
@@ -917,7 +936,7 @@ if (nmelt==0) then
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
-      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)      
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',5,'f20.3')      
    !additional new grdmip outputs
       !grounded ice mass
       cvar = 'grd_ice_mass'
@@ -928,7 +947,7 @@ if (nmelt==0) then
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
-      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)    
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',5,'f20.3')    
       !total ice mass
       cvar = 'tot_ice_mass'
       cvarl = 'total ice mass'
@@ -938,7 +957,7 @@ if (nmelt==0) then
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
-      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)    
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',5,'f20.3')    
       !barystatic sea level change
       cvar = 'bslc'
       cvarl = 'barystatic sea level change'
@@ -948,7 +967,7 @@ if (nmelt==0) then
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
-      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)    
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',4,'f6.2')    
       !mean delta g
       cvar = 'mean_delta_g'
       cvarl = 'Ocean area mean of changes in geoid'
@@ -958,7 +977,7 @@ if (nmelt==0) then
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
-      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',4,'f6.2')
 
       !3D variables (lat, lon, time)
       ndim    = 3
@@ -975,7 +994,7 @@ if (nmelt==0) then
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
-      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',2,'I1')
       !ocean
       cvar = 'Ocean'
       cvarl = 'Ocean mask'
@@ -985,7 +1004,7 @@ if (nmelt==0) then
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
-      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',2,'I1')
       !tgrid
       cvar = 'tgrid'
       cvarl = 'Topography'
@@ -995,7 +1014,7 @@ if (nmelt==0) then
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
-      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',4,'f7.2')
       !delta R
       cvar = 'delta_r'
       cvarl = 'changes in bedrock height'
@@ -1005,7 +1024,7 @@ if (nmelt==0) then
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
-      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',,'f7.2')
       !delta G
       cvar = 'delta_g'
       cvarl = 'Changes in geopotential height'
@@ -1015,7 +1034,7 @@ if (nmelt==0) then
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
-      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',,'f7.2')
    !additional new grdmip outputs
       !Bed (R)
       cvar = 'bed'
@@ -1026,7 +1045,7 @@ if (nmelt==0) then
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
-      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',,'f7.2')
       !delta rsl
       cvar = 'delta_rsl'
       cvarl = 'changes in local ocean depth'
@@ -1036,7 +1055,7 @@ if (nmelt==0) then
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
-      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',,'f7.2')
 
 
       !3D variables (degree, order, time)
@@ -1055,7 +1074,7 @@ if (nmelt==0) then
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
-      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',4,'f6.3')
       
    !additional new grdmip outputs
       !Clm
@@ -1067,7 +1086,7 @@ if (nmelt==0) then
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
-      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',4,'f6.3')
       !Slm
       cvar = 'Slm'
       cvarl = 'S_lm Stokes coefficients of changes in the gravity field wrt the initial simulation time'
@@ -1077,7 +1096,7 @@ if (nmelt==0) then
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
-      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',__,__)
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',4,'f6.3')
 
       !Leave define mode
       rcode = nf_enddef(ncid)
@@ -1142,9 +1161,9 @@ if (nmelt==0) then
 
       !degree, order, time
       start(1) = 1
-      count(1) = norder
+      count(1) = norder + 1
       start(2) = 1
-      count(2) = norder
+      count(2) = norder + 1
       start(3) = iter + 1
       count(3) = 1
 
