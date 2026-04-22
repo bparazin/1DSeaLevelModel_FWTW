@@ -227,7 +227,7 @@ real, dimension(:,:,:), allocatable :: sl       ! Big arrays of sea level change
 complex, dimension(:,:,:), allocatable:: dicestar,dS,deltaicestar,deltaS! Big arrays of changes in loads               |
                                                                                        !  used in Love number viscous   | 
                                                                                        !  response    
-complex, dimension(:,:), allocatable :: Clm,Slm                   |  ! GRDMIP outputs
+complex, dimension(:,:), allocatable :: Clm,Slm                      ! GRDMIP outputs
 real, dimension(:,:,:), allocatable :: rr,gg                         !  R and G (radial displacement and geoid change)  |
 complex, dimension(:,:,:), allocatable :: dlambda, deltalambda       ! Big arrays of changes in rotational driving      |
 real, dimension(:,:,:), allocatable :: dil                           ! Big array of changes in IL                       |
@@ -324,6 +324,9 @@ character(*), parameter :: chist = 'SL_model.nc'
 integer, dimension(0:norder) :: order_list, degree_list
 real, dimension(nglv) :: lat
 real, dimension(2*nglv) :: lon
+integer :: nf_open, nf_create, nf_put_att_text, nf_def_dim, nf_def_var, nf_enddef
+integer :: nf_put_vara_double, nf_redef, nf_put_vara_integer, ndim, nf_inq_varid, 
+integer :: nf_put_var1_double, nf_close
 
 ! Reading in arguments from namelist
 
@@ -833,7 +836,7 @@ if (nmelt==0) then
                icestarxy(:,:) = icexy(:,:,1)
             endif
             call spat2spec(icestarxy(:,:),icestarlm(:,:),spheredat)
-            call spat2spec(icexy(:,:), icelm(:,:), spheredat)
+            call spat2spec(icexy(:,:,1), icelm(:,:), spheredat)
 
         grounded_ice_volume = icestarlm(0,0)*4*pi*radius**2
         ice_volume = icelm(0,0)*4*pi*radius**2
