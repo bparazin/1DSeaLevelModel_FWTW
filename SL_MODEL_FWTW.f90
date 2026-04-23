@@ -326,7 +326,8 @@ real, dimension(nglv) :: lat
 real, dimension(2*nglv) :: lon
 integer :: nf_open, nf_create, nf_put_att_text, nf_def_dim, nf_def_var, nf_enddef
 integer :: nf_put_vara_double, nf_redef, nf_put_vara_int, ndim, nf_inq_varid 
-integer :: nf_put_var1_double, nf_close
+integer :: nf_put_var1_double, nf_close\
+character(240) :: NF_STRERROR 
 
 ! Reading in arguments from namelist
 
@@ -888,19 +889,19 @@ if (nmelt==0) then
       enddo
 
       rcode = nf_def_dim(ncid, 'lon', nglv*2, xid)
-      write(*,*) rcode
+      write(*,*) NF_STRERROR(rcode)
       rcode = nf_def_var(ncid, 'lon', nf_float, 1, xid, varid)
-      write(*,*) rcode
+      write(*,*) NF_STRERROR(rcode)
       rcode = nf_put_att_text(ncid, varid, 'units', 12, 'degrees_east')
-      write(*,*) rcode
+      write(*,*) NF_STRERROR(rcode)
       rcode = nf_put_att_text(ncid, varid, 'FORTRAN_format', 4, 'f8.3')
-      write(*,*) rcode
+      write(*,*) NF_STRERROR(rcode)
       rcode = nf_enddef(ncid)
-      write(*,*) rcode
+      write(*,*) NF_STRERROR(rcode)
       rcode = nf_put_vara_double(ncid, varid, 1, nglv*2, lon) !put lon data into netcdf
-      write(*,*) rcode
+      write(*,*) NF_STRERROR(rcode)
       rcode = nf_redef(ncid)
-      write(*,*) rcode
+      write(*,*) NF_STRERROR(rcode)
 
       rcode = nf_def_dim(ncid, 'lat', nglv, yid)
       rcode = nf_def_var(ncid, 'lat', nf_float, 1, yid, varid)
