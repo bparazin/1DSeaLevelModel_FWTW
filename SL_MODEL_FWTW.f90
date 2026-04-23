@@ -1033,7 +1033,7 @@ if (nmelt==0) then
          rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
          rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
          rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
-         rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',,'f7.2')
+         rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',4,'f7.2')
          !delta G
          cvar = 'delta_g'
          cvarl = 'Changes in geopotential height'
@@ -1043,7 +1043,7 @@ if (nmelt==0) then
          rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
          rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
          rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
-         rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',,'f7.2')
+         rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',4,'f7.2')
 
          !Bed (R)
          cvar = 'bed'
@@ -1054,7 +1054,7 @@ if (nmelt==0) then
          rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
          rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
          rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
-         rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',,'f7.2')
+         rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',4,'f7.2')
       endif
 
       !delta rsl
@@ -1066,7 +1066,7 @@ if (nmelt==0) then
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
-      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',,'f7.2')
+      rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',4,'f7.2')
 
 
       !3D variables (degree, order, time)
