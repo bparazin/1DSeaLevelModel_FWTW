@@ -314,8 +314,8 @@ character(16) :: carg(20)                               ! Arguments from a bash 
 character(3) :: skip                                    ! variable used to skip lines in reading TPW file 
 
 ! For netcdf I/O
-integer :: rcode, ncid, varid, lenattr, ncerr
-integer :: ival4, jval4
+integer :: rcode, ncid, varid, lenattr, ncerr, nf_clobber, nf_unlimited
+integer :: ival4, jval4, lenchr, nf_global, nf_float, nf_integer
 integer :: xid, yid, timid, ordid, degid
 integer, dimension(4) :: idim, start, count
 character(16) :: cvar, cunits
@@ -325,7 +325,7 @@ integer, dimension(0:norder) :: order_list, degree_list
 real, dimension(nglv) :: lat
 real, dimension(2*nglv) :: lon
 integer :: nf_open, nf_create, nf_put_att_text, nf_def_dim, nf_def_var, nf_enddef
-integer :: nf_put_vara_double, nf_redef, nf_put_vara_integer, ndim, nf_inq_varid, 
+integer :: nf_put_vara_double, nf_redef, nf_put_vara_integer, ndim, nf_inq_varid 
 integer :: nf_put_var1_double, nf_close
 
 ! Reading in arguments from namelist
@@ -866,7 +866,7 @@ if (nmelt==0) then
 
       cruntitle = 'Sea level model run'
       lenattr = lenchr(cruntitle)
-      rcode = nf_put_att_text(ncid, ncglobal, 'title', lenattr, cruntitle)
+      rcode = nf_put_att_text(ncid, nf_global, 'title', lenattr, cruntitle)
 
       do i = 1,nglv
          lat(i) = 180./(1.0*nglv)
@@ -918,7 +918,7 @@ if (nmelt==0) then
       rcode = nf_redef(ncid)
 
       !add time dimension
-      rcode = nf_def_dim(ncid, 'time', ncunlim, timid)
+      rcode = nf_def_dim(ncid, 'time', nf_unlimited, timid)
       rcode = nf_def_var(ncid, 'time', nf_float, 1, timid, varid)
       rcode = nf_put_att_text(ncid, varid, 'long_name', 4, 'year')
       rcode = nf_put_att_text(ncid, varid, 'units', 5, 'years')
@@ -1125,7 +1125,7 @@ if (nmelt==0) then
       rcode = nf_inq_varid(ncid, 'bslc', varid)
       rcode = nf_put_vara_double(ncid, varid, start, count, 0) !no change in barystatic sea level at initial time step
 
-      rcode = nf_inq_varid(ncid, mean_delta_g, varid)
+      rcode = nf_inq_varid(ncid, 'mean_delta_g', varid)
       rcode = nf_put_vara_double(ncid, varid, start, count, 0) !no change in delta g at initial time step
 
       !3D fields
