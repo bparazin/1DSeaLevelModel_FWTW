@@ -888,12 +888,19 @@ if (nmelt==0) then
       enddo
 
       rcode = nf_def_dim(ncid, 'lon', nglv*2, xid)
+      write(*,*) rcode
       rcode = nf_def_var(ncid, 'lon', nf_float, 1, xid, varid)
+      write(*,*) rcode
       rcode = nf_put_att_text(ncid, varid, 'units', 12, 'degrees_east')
+      write(*,*) rcode
       rcode = nf_put_att_text(ncid, varid, 'FORTRAN_format', 4, 'f8.3')
+      write(*,*) rcode
       rcode = nf_enddef(ncid)
+      write(*,*) rcode
       rcode = nf_put_vara_double(ncid, varid, 1, nglv*2, lon) !put lon data into netcdf
+      write(*,*) rcode
       rcode = nf_redef(ncid)
+      write(*,*) rcode
 
       rcode = nf_def_dim(ncid, 'lat', nglv, yid)
       rcode = nf_def_var(ncid, 'lat', nf_float, 1, yid, varid)
@@ -925,7 +932,7 @@ if (nmelt==0) then
       rcode = nf_def_var(ncid, 'time', nf_float, 1, timid, varid)
       rcode = nf_put_att_text(ncid, varid, 'long_name', 4, 'year')
       rcode = nf_put_att_text(ncid, varid, 'units', 5, 'years')
-      rcode = nf_put_att_text(ncid, varid, 'FORTRAN_FORMAT', 5, 'f12.3')
+      rcode = nf_put_att_text(ncid, varid, 'FORTRAN_format', 5, 'f12.3')
 
       !Variable dimensions and attrs
 
