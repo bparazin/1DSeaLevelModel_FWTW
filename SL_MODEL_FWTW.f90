@@ -314,8 +314,8 @@ character(16) :: carg(20)                               ! Arguments from a bash 
 character(3) :: skip                                    ! variable used to skip lines in reading TPW file 
 
 ! For netcdf I/O
-integer :: rcode, ncid, varid, lenattr, ncerr, nf_clobber, nf_unlimited
-integer :: ival4, jval4, len, nf_global, nf_float, nf_integer, nf_write
+integer :: rcode, ncid, varid, lenattr
+integer :: ival4, jval4, len
 integer :: xid, yid, timid, ordid, degid
 integer, dimension(4) :: idim, start, count
 character(16) :: cvar, cunits
@@ -326,7 +326,7 @@ real, dimension(nglv) :: lat
 real, dimension(2*nglv) :: lon
 integer :: nf_open, nf_create, nf_put_att_text, nf_def_dim, nf_def_var, nf_enddef
 integer :: nf_put_vara_double, nf_redef, nf_put_vara_int, ndim, nf_inq_varid 
-integer :: nf_put_var1_double, nf_close\
+integer :: nf_put_var1_double, nf_close
 character(240) :: NF_STRERROR 
 
 ! Reading in arguments from namelist
@@ -860,7 +860,7 @@ if (nmelt==0) then
 
     !BP: initalize netcdf database
     if (netcdfOutput) then
-      rcode = nf_create(chist, nf_clobber, ncid)
+      rcode = nf_create(chist, nf90_clobber, ncid)
       write(*,*) 'CREATING NEW NETCDF FILE'
       if (rcode .ne. 0) then
          write(*,'(A,I5)') 'Creating NETCDF failled with error code', rcode
@@ -870,14 +870,14 @@ if (nmelt==0) then
 
       cruntitle = 'Sea level model run'
       lenattr = len(cruntitle)
-      rcode = nf_put_att_text(ncid, nf_global, 'title', lenattr, cruntitle)
+      rcode = nf_put_att_text(ncid, nf90_global, 'title', lenattr, cruntitle)
 
       do i = 1,nglv
-         lat(i) = 180./(1.0*nglv)
+         lat(i) = i*180./(1.0*nglv)
       enddo
 
       do i = 1,2*nglv
-         lon(i) = 360./(2.*nglv)
+         lon(i) = i*360./(2.*nglv)
       enddo
 
       do i = 0,norder
@@ -889,22 +889,15 @@ if (nmelt==0) then
       enddo
 
       rcode = nf_def_dim(ncid, 'lon', nglv*2, xid)
-      write(*,*) NF_STRERROR(rcode)
-      rcode = nf_def_var(ncid, 'lon', nf_float, 1, xid, varid)
-      write(*,*) NF_STRERROR(rcode)
+      rcode = nf_def_var(ncid, 'lon', nf90_float, 1, xid, varid)
       rcode = nf_put_att_text(ncid, varid, 'units', 12, 'degrees_east')
-      write(*,*) NF_STRERROR(rcode)
       rcode = nf_put_att_text(ncid, varid, 'FORTRAN_format', 4, 'f8.3')
-      write(*,*) NF_STRERROR(rcode)
       rcode = nf_enddef(ncid)
-      write(*,*) NF_STRERROR(rcode)
       rcode = nf_put_vara_double(ncid, varid, 1, nglv*2, lon) !put lon data into netcdf
-      write(*,*) NF_STRERROR(rcode)
       rcode = nf_redef(ncid)
-      write(*,*) NF_STRERROR(rcode)
 
       rcode = nf_def_dim(ncid, 'lat', nglv, yid)
-      rcode = nf_def_var(ncid, 'lat', nf_float, 1, yid, varid)
+      rcode = nf_def_var(ncid, 'lat', nf90_float, 1, yid, varid)
       rcode = nf_put_att_text(ncid, varid, 'units', 13, 'degrees_north')
       rcode = nf_put_att_text(ncid, varid, 'FORTRAN_format', 4, 'f8.3')
       rcode = nf_enddef(ncid)
@@ -913,7 +906,7 @@ if (nmelt==0) then
 
       !add degree and order dimensions
       rcode = nf_def_dim(ncid, 'degree', norder, degid)
-      rcode = nf_def_var(ncid, 'degree', nf_integer, 1, degid, varid)
+      rcode = nf_def_var(ncid, 'degree', nf90_integer, 1, degid, varid)
       rcode = nf_put_att_text(ncid, varid, 'units', 8, 'unitless')
       rcode = nf_put_att_text(ncid, varid, 'FORTRAN_format', 2, 'I4')
       rcode = nf_enddef(ncid)
@@ -921,7 +914,7 @@ if (nmelt==0) then
       rcode = nf_redef(ncid)
 
       rcode = nf_def_dim(ncid, 'order', norder, ordid)
-      rcode = nf_def_var(ncid, 'order', nf_integer, 1, ordid, varid)
+      rcode = nf_def_var(ncid, 'order', nf90_integer, 1, ordid, varid)
       rcode = nf_put_att_text(ncid, varid, 'units', 8, 'unitless')
       rcode = nf_put_att_text(ncid, varid, 'FORTRAN_format', 2, 'I4')
       rcode = nf_enddef(ncid)
@@ -929,8 +922,8 @@ if (nmelt==0) then
       rcode = nf_redef(ncid)
 
       !add time dimension
-      rcode = nf_def_dim(ncid, 'time', nf_unlimited, timid)
-      rcode = nf_def_var(ncid, 'time', nf_float, 1, timid, varid)
+      rcode = nf_def_dim(ncid, 'time', nf90_unlimited, timid)
+      rcode = nf_def_var(ncid, 'time', nf90_float, 1, timid, varid)
       rcode = nf_put_att_text(ncid, varid, 'long_name', 4, 'year')
       rcode = nf_put_att_text(ncid, varid, 'units', 5, 'years')
       rcode = nf_put_att_text(ncid, varid, 'FORTRAN_format', 5, 'f12.3')
@@ -948,7 +941,7 @@ if (nmelt==0) then
          cunits = 'm3'
          ival4 = len(cvarl)
          jval4 = len(cunits)
-         rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+         rcode = nf_def_var (ncid, cvar, nf90_float, ndim, idim, varid)
          rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
          rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
          rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',5,'f20.3')      
@@ -959,7 +952,7 @@ if (nmelt==0) then
          cunits = 'kg'
          ival4 = len(cvarl)
          jval4 = len(cunits)
-         rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+         rcode = nf_def_var (ncid, cvar, nf90_float, ndim, idim, varid)
          rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
          rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
          rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',5,'f20.3')    
@@ -969,7 +962,7 @@ if (nmelt==0) then
          cunits = 'kg'
          ival4 = len(cvarl)
          jval4 = len(cunits)
-         rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+         rcode = nf_def_var (ncid, cvar, nf90_float, ndim, idim, varid)
          rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
          rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
          rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',5,'f20.3')    
@@ -980,7 +973,7 @@ if (nmelt==0) then
       cunits = 'm'
       ival4 = len(cvarl)
       jval4 = len(cunits)
-      rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+      rcode = nf_def_var (ncid, cvar, nf90_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
       rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',4,'f6.2')    
@@ -990,15 +983,15 @@ if (nmelt==0) then
       cunits = 'm'
       ival4 = len(cvarl)
       jval4 = len(cunits)
-      rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+      rcode = nf_def_var (ncid, cvar, nf90_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
       rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',4,'f6.2')
 
       !3D variables (lat, lon, time)
       ndim    = 3
-      idim(1) = yid
-      idim(2) = xid
+      idim(1) = xid
+      idim(2) = yid
       idim(3) = timid
       
       !beta
@@ -1007,7 +1000,7 @@ if (nmelt==0) then
       cunits = 'none'
       ival4 = len(cvarl)
       jval4 = len(cunits)
-      rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+      rcode = nf_def_var (ncid, cvar, nf90_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
       rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',2,'I1')
@@ -1017,7 +1010,7 @@ if (nmelt==0) then
       cunits = 'none'
       ival4 = len(cvarl)
       jval4 = len(cunits)
-      rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+      rcode = nf_def_var (ncid, cvar, nf90_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
       rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',2,'I1')
@@ -1027,7 +1020,7 @@ if (nmelt==0) then
       cunits = 'm'
       ival4 = len(cvarl)
       jval4 = len(cunits)
-      rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+      rcode = nf_def_var (ncid, cvar, nf90_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
       rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',4,'f7.2')
@@ -1038,7 +1031,7 @@ if (nmelt==0) then
          cunits = 'm'
          ival4 = len(cvarl)
          jval4 = len(cunits)
-         rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+         rcode = nf_def_var (ncid, cvar, nf90_float, ndim, idim, varid)
          rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
          rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
          rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',4,'f7.2')
@@ -1048,7 +1041,7 @@ if (nmelt==0) then
          cunits = 'm'
          ival4 = len(cvarl)
          jval4 = len(cunits)
-         rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+         rcode = nf_def_var (ncid, cvar, nf90_float, ndim, idim, varid)
          rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
          rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
          rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',4,'f7.2')
@@ -1059,7 +1052,7 @@ if (nmelt==0) then
          cunits = 'm'
          ival4 = len(cvarl)
          jval4 = len(cunits)
-         rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+         rcode = nf_def_var (ncid, cvar, nf90_float, ndim, idim, varid)
          rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
          rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
          rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',4,'f7.2')
@@ -1071,7 +1064,7 @@ if (nmelt==0) then
       cunits = 'm'
       ival4 = len(cvarl)
       jval4 = len(cunits)
-      rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+      rcode = nf_def_var (ncid, cvar, nf90_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
       rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',4,'f7.2')
@@ -1090,7 +1083,7 @@ if (nmelt==0) then
       cunits = 'unitless'
       ival4 = len(cvarl)
       jval4 = len(cunits)
-      rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+      rcode = nf_def_var (ncid, cvar, nf90_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
       rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',4,'f6.3')
@@ -1102,7 +1095,7 @@ if (nmelt==0) then
       cunits = 'unitless'
       ival4 = len(cvarl)
       jval4 = len(cunits)
-      rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+      rcode = nf_def_var (ncid, cvar, nf90_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
       rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',4,'f6.3')
@@ -1112,7 +1105,7 @@ if (nmelt==0) then
       cunits = 'unitless'
       ival4 = len(cvarl)
       jval4 = len(cunits)
-      rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
+      rcode = nf_def_var (ncid, cvar, nf90_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
       rcode = nf_put_att_text (ncid,varid,'FORTRAN_format',4,'f6.3')
