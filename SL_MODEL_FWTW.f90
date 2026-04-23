@@ -315,7 +315,7 @@ character(3) :: skip                                    ! variable used to skip 
 
 ! For netcdf I/O
 integer :: rcode, ncid, varid, lenattr, ncerr, nf_clobber, nf_unlimited
-integer :: ival4, jval4, lenchr, nf_global, nf_float, nf_integer
+integer :: ival4, jval4, len, nf_global, nf_float, nf_integer
 integer :: xid, yid, timid, ordid, degid
 integer, dimension(4) :: idim, start, count
 character(16) :: cvar, cunits
@@ -325,7 +325,7 @@ integer, dimension(0:norder) :: order_list, degree_list
 real, dimension(nglv) :: lat
 real, dimension(2*nglv) :: lon
 integer :: nf_open, nf_create, nf_put_att_text, nf_def_dim, nf_def_var, nf_enddef
-integer :: nf_put_vara_double, nf_redef, nf_put_vara_integer, ndim, nf_inq_varid 
+integer :: nf_put_vara_double, nf_redef, nf_put_vara_int, ndim, nf_inq_varid 
 integer :: nf_put_var1_double, nf_close
 
 ! Reading in arguments from namelist
@@ -865,7 +865,7 @@ if (nmelt==0) then
 
 
       cruntitle = 'Sea level model run'
-      lenattr = lenchr(cruntitle)
+      lenattr = len(cruntitle)
       rcode = nf_put_att_text(ncid, nf_global, 'title', lenattr, cruntitle)
 
       do i = 1,nglv
@@ -906,7 +906,7 @@ if (nmelt==0) then
       rcode = nf_put_att_text(ncid, varid, 'units', 8, 'unitless')
       rcode = nf_put_att_text(ncid, varid, 'FORTRAN_format', 2, 'I4')
       rcode = nf_enddef(ncid)
-      rcode = nf_put_vara_integer(ncid, varid, 1, norder+1, degree_list) !put degree into netcdf
+      rcode = nf_put_vara_int(ncid, varid, 1, norder+1, degree_list) !put degree into netcdf
       rcode = nf_redef(ncid)
 
       rcode = nf_def_dim(ncid, 'order', norder, ordid)
@@ -914,7 +914,7 @@ if (nmelt==0) then
       rcode = nf_put_att_text(ncid, varid, 'units', 8, 'unitless')
       rcode = nf_put_att_text(ncid, varid, 'FORTRAN_format', 2, 'I4')
       rcode = nf_enddef(ncid)
-      rcode = nf_put_vara_integer(ncid, varid, 1, norder+1, order_list) !put order into netcdf
+      rcode = nf_put_vara_int(ncid, varid, 1, norder+1, order_list) !put order into netcdf
       rcode = nf_redef(ncid)
 
       !add time dimension
@@ -934,8 +934,8 @@ if (nmelt==0) then
       cvar = 'ice_vol'
       cvarl = 'ice volume'
       cunits = 'm3'
-      ival4 = lenchr(cvarl)
-      jval4 = lenchr(cunits)
+      ival4 = len(cvarl)
+      jval4 = len(cunits)
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
@@ -945,8 +945,8 @@ if (nmelt==0) then
       cvar = 'grd_ice_mass'
       cvarl = 'grounded ice mass'
       cunits = 'kg'
-      ival4 = lenchr(cvarl)
-      jval4 = lenchr(cunits)
+      ival4 = len(cvarl)
+      jval4 = len(cunits)
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
@@ -955,8 +955,8 @@ if (nmelt==0) then
       cvar = 'tot_ice_mass'
       cvarl = 'total ice mass'
       cunits = 'kg'
-      ival4 = lenchr(cvarl)
-      jval4 = lenchr(cunits)
+      ival4 = len(cvarl)
+      jval4 = len(cunits)
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
@@ -965,8 +965,8 @@ if (nmelt==0) then
       cvar = 'bslc'
       cvarl = 'barystatic sea level change'
       cunits = 'm'
-      ival4 = lenchr(cvarl)
-      jval4 = lenchr(cunits)
+      ival4 = len(cvarl)
+      jval4 = len(cunits)
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
@@ -975,8 +975,8 @@ if (nmelt==0) then
       cvar = 'mean_delta_g'
       cvarl = 'Ocean area mean of changes in geoid'
       cunits = 'm'
-      ival4 = lenchr(cvarl)
-      jval4 = lenchr(cunits)
+      ival4 = len(cvarl)
+      jval4 = len(cunits)
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
@@ -992,8 +992,8 @@ if (nmelt==0) then
       cvar = 'beta'
       cvarl = 'Grounded ice mask'
       cunits = 'none'
-      ival4 = lenchr(cvarl)
-      jval4 = lenchr(cunits)
+      ival4 = len(cvarl)
+      jval4 = len(cunits)
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
@@ -1002,8 +1002,8 @@ if (nmelt==0) then
       cvar = 'Ocean'
       cvarl = 'Ocean mask'
       cunits = 'none'
-      ival4 = lenchr(cvarl)
-      jval4 = lenchr(cunits)
+      ival4 = len(cvarl)
+      jval4 = len(cunits)
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
@@ -1012,8 +1012,8 @@ if (nmelt==0) then
       cvar = 'tgrid'
       cvarl = 'Topography'
       cunits = 'm'
-      ival4 = lenchr(cvarl)
-      jval4 = lenchr(cunits)
+      ival4 = len(cvarl)
+      jval4 = len(cunits)
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
@@ -1022,8 +1022,8 @@ if (nmelt==0) then
       cvar = 'delta_r'
       cvarl = 'changes in bedrock height'
       cunits = 'm'
-      ival4 = lenchr(cvarl)
-      jval4 = lenchr(cunits)
+      ival4 = len(cvarl)
+      jval4 = len(cunits)
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
@@ -1032,8 +1032,8 @@ if (nmelt==0) then
       cvar = 'delta_g'
       cvarl = 'Changes in geopotential height'
       cunits = 'm'
-      ival4 = lenchr(cvarl)
-      jval4 = lenchr(cunits)
+      ival4 = len(cvarl)
+      jval4 = len(cunits)
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
@@ -1043,8 +1043,8 @@ if (nmelt==0) then
       cvar = 'bed'
       cvarl = 'bed/seafloor'
       cunits = 'm'
-      ival4 = lenchr(cvarl)
-      jval4 = lenchr(cunits)
+      ival4 = len(cvarl)
+      jval4 = len(cunits)
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
@@ -1053,8 +1053,8 @@ if (nmelt==0) then
       cvar = 'delta_rsl'
       cvarl = 'changes in local ocean depth'
       cunits = 'm'
-      ival4 = lenchr(cvarl)
-      jval4 = lenchr(cunits)
+      ival4 = len(cvarl)
+      jval4 = len(cunits)
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
@@ -1072,8 +1072,8 @@ if (nmelt==0) then
       cvar = 'dS_converged'
       cvarl = 'Sea surface height in spectral coordinates'
       cunits = 'unitless'
-      ival4 = lenchr(cvarl)
-      jval4 = lenchr(cunits)
+      ival4 = len(cvarl)
+      jval4 = len(cunits)
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
@@ -1084,8 +1084,8 @@ if (nmelt==0) then
       cvar = 'Clm'
       cvarl = 'C_lm Stokes coefficients of changes in the gravity field wrt the initial simulation time'
       cunits = 'unitless'
-      ival4 = lenchr(cvarl)
-      jval4 = lenchr(cunits)
+      ival4 = len(cvarl)
+      jval4 = len(cunits)
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
@@ -1094,8 +1094,8 @@ if (nmelt==0) then
       cvar = 'Slm'
       cvarl = 'S_lm Stokes coefficients of changes in the gravity field wrt the initial simulation time'
       cunits = 'unitless'
-      ival4 = lenchr(cvarl)
-      jval4 = lenchr(cunits)
+      ival4 = len(cvarl)
+      jval4 = len(cunits)
       rcode = nf_def_var (ncid, cvar, nf_float, ndim, idim, varid)
       rcode = nf_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
       rcode = nf_put_att_text (ncid, varid, 'units', jval4, cunits)
