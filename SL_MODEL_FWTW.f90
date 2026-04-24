@@ -867,8 +867,7 @@ if (nmelt==0) then
 
 
       cruntitle = 'Sea level model run'
-      lenattr = len(cruntitle)
-      rcode = nf90_put_att_text(ncid, nf90_global, 'title', lenattr, cruntitle)
+      rcode = nf90_put_att(ncid, nf90_global, 'title', cruntitle)
 
       do i = 1,nglv
          lat(i) = i*180./(1.0*nglv)
@@ -888,16 +887,16 @@ if (nmelt==0) then
 
       rcode = nf90_def_dim(ncid, 'lon', nglv*2, xid)
       rcode = nf90_def_var(ncid, 'lon', nf90_float, xid, varid)
-      rcode = nf90_put_att_text(ncid, varid, 'units', 12, 'degrees_east')
-      rcode = nf90_put_att_text(ncid, varid, 'FORTRAN_format', 4, 'f8.3')
+      rcode = nf90_put_att(ncid, varid, 'units', 'degrees_east')
+      rcode = nf90_put_att(ncid, varid, 'FORTRAN_format', 'f8.3')
       rcode = nf90_enddef(ncid)
       rcode = nf90_put_var(ncid, varid, lon(:)) !put lon data into netcdf
       rcode = nf90_redef(ncid)
 
       rcode = nf90_def_dim(ncid, 'lat', nglv, yid)
       rcode = nf90_def_var(ncid, 'lat', nf90_float, yid, varid)
-      rcode = nf90_put_att_text(ncid, varid, 'units', 13, 'degrees_north')
-      rcode = nf90_put_att_text(ncid, varid, 'FORTRAN_format', 4, 'f8.3')
+      rcode = nf90_put_att(ncid, varid, 'units', 'degrees_north')
+      rcode = nf90_put_att(ncid, varid, 'FORTRAN_format', 'f8.3')
       rcode = nf90_enddef(ncid)
       rcode = nf90_put_var(ncid, varid, lat(:)) !put lat data into netcdf
       rcode = nf90_redef(ncid)
@@ -905,16 +904,16 @@ if (nmelt==0) then
       !add degree and order dimensions
       rcode = nf90_def_dim(ncid, 'degree', norder, degid)
       rcode = nf90_def_var(ncid, 'degree', nf90_int, degid, varid)
-      rcode = nf90_put_att_text(ncid, varid, 'units', 8, 'unitless')
-      rcode = nf90_put_att_text(ncid, varid, 'FORTRAN_format', 2, 'I4')
+      rcode = nf90_put_att(ncid, varid, 'units', 'unitless')
+      rcode = nf90_put_att(ncid, varid, 'FORTRAN_format', 'I4')
       rcode = nf90_enddef(ncid)
       rcode = nf90_put_var(ncid, varid, degree_list(:)) !put degree into netcdf
       rcode = nf90_redef(ncid)
 
       rcode = nf90_def_dim(ncid, 'order', norder, ordid)
       rcode = nf90_def_var(ncid, 'order', nf90_int, ordid, varid)
-      rcode = nf90_put_att_text(ncid, varid, 'units', 8, 'unitless')
-      rcode = nf90_put_att_text(ncid, varid, 'FORTRAN_format', 2, 'I4')
+      rcode = nf90_put_att(ncid, varid, 'units', 'unitless')
+      rcode = nf90_put_att(ncid, varid, 'FORTRAN_format', 'I4')
       rcode = nf90_enddef(ncid)
       rcode = nf90_put_var(ncid, varid, order_list(:)) !put order into netcdf
       rcode = nf90_redef(ncid)
@@ -922,9 +921,9 @@ if (nmelt==0) then
       !add time dimension
       rcode = nf90_def_dim(ncid, 'time', nf90_unlimited, timid)
       rcode = nf90_def_var(ncid, 'time', nf90_float, timid, varid)
-      rcode = nf90_put_att_text(ncid, varid, 'long_name', 4, 'year')
-      rcode = nf90_put_att_text(ncid, varid, 'units', 5, 'years')
-      rcode = nf90_put_att_text(ncid, varid, 'FORTRAN_format', 5, 'f12.3')
+      rcode = nf90_put_att(ncid, varid, 'long_name', 'year')
+      rcode = nf90_put_att(ncid, varid, 'units', 'years')
+      rcode = nf90_put_att(ncid, varid, 'FORTRAN_format', 'f12.3')
 
       !Variable dimensions and attrs
 
@@ -936,54 +935,44 @@ if (nmelt==0) then
          cvar = 'ice_vol'
          cvarl = 'ice volume'
          cunits = 'm3'
-         ival4 = len(cvarl)
-         jval4 = len(cunits)
-         rcode = nf90_def_var (ncid, cvar, nf90_float, idim, varid)
-         rcode = nf90_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
-         rcode = nf90_put_att_text (ncid, varid, 'units', jval4, cunits)
-         rcode = nf90_put_att_text (ncid,varid,'FORTRAN_format',5,'f20.3')      
+         rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+         rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
+         rcode = nf90_put_att(ncid, varid, 'units', cunits)
+         rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f20.3')      
       !additional new grdmip outputs
          !grounded ice mass
          cvar = 'grd_ice_mass'
          cvarl = 'grounded ice mass'
          cunits = 'kg'
-         ival4 = len(cvarl)
-         jval4 = len(cunits)
-         rcode = nf90_def_var (ncid, cvar, nf90_float, idim, varid)
-         rcode = nf90_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
-         rcode = nf90_put_att_text (ncid, varid, 'units', jval4, cunits)
-         rcode = nf90_put_att_text (ncid,varid,'FORTRAN_format',5,'f20.3')    
+         rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+         rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
+         rcode = nf90_put_att(ncid, varid, 'units', cunits)
+         rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f20.3')    
          !total ice mass
          cvar = 'tot_ice_mass'
          cvarl = 'total ice mass'
          cunits = 'kg'
-         ival4 = len(cvarl)
-         jval4 = len(cunits)
-         rcode = nf90_def_var (ncid, cvar, nf90_float, idim, varid)
-         rcode = nf90_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
-         rcode = nf90_put_att_text (ncid, varid, 'units', jval4, cunits)
-         rcode = nf90_put_att_text (ncid,varid,'FORTRAN_format',5,'f20.3')    
+         rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+         rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
+         rcode = nf90_put_att(ncid, varid, 'units', cunits)
+         rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f20.3')    
       endif
       !barystatic sea level change
       cvar = 'bslc'
       cvarl = 'barystatic sea level change'
       cunits = 'm'
-      ival4 = len(cvarl)
-      jval4 = len(cunits)
-      rcode = nf90_def_var (ncid, cvar, nf90_float, idim, varid)
-      rcode = nf90_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
-      rcode = nf90_put_att_text (ncid, varid, 'units', jval4, cunits)
-      rcode = nf90_put_att_text (ncid,varid,'FORTRAN_format',4,'f6.2')    
+      rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
+      rcode = nf90_put_att(ncid, varid, 'units', cunits)
+      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.2')    
       !mean delta g
       cvar = 'mean_delta_g'
       cvarl = 'Ocean area mean of changes in geoid'
       cunits = 'm'
-      ival4 = len(cvarl)
-      jval4 = len(cunits)
-      rcode = nf90_def_var (ncid, cvar, nf90_float, idim, varid)
-      rcode = nf90_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
-      rcode = nf90_put_att_text (ncid, varid, 'units', jval4, cunits)
-      rcode = nf90_put_att_text (ncid,varid,'FORTRAN_format',4,'f6.2')
+      rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
+      rcode = nf90_put_att(ncid, varid, 'units', cunits)
+      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.2')
 
       !3D variables (lat, lon, time)
       idim(1) = yid
@@ -994,76 +983,62 @@ if (nmelt==0) then
       cvar = 'beta'
       cvarl = 'Grounded ice mask'
       cunits = 'none'
-      ival4 = len(cvarl)
-      jval4 = len(cunits)
-      rcode = nf90_def_var (ncid, cvar, nf90_float, idim, varid)
-      rcode = nf90_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
-      rcode = nf90_put_att_text (ncid, varid, 'units', jval4, cunits)
-      rcode = nf90_put_att_text (ncid,varid,'FORTRAN_format',2,'I1')
+      rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
+      rcode = nf90_put_att(ncid, varid, 'units', cunits)
+      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','I1')
       !ocean
       cvar = 'Ocean'
       cvarl = 'Ocean mask'
       cunits = 'none'
-      ival4 = len(cvarl)
-      jval4 = len(cunits)
-      rcode = nf90_def_var (ncid, cvar, nf90_float, idim, varid)
-      rcode = nf90_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
-      rcode = nf90_put_att_text (ncid, varid, 'units', jval4, cunits)
-      rcode = nf90_put_att_text (ncid,varid,'FORTRAN_format',2,'I1')
+      rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
+      rcode = nf90_put_att(ncid, varid, 'units', cunits)
+      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','I1')
       !tgrid
       cvar = 'tgrid'
       cvarl = 'Topography'
       cunits = 'm'
-      ival4 = len(cvarl)
-      jval4 = len(cunits)
-      rcode = nf90_def_var (ncid, cvar, nf90_float, idim, varid)
-      rcode = nf90_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
-      rcode = nf90_put_att_text (ncid, varid, 'units', jval4, cunits)
-      rcode = nf90_put_att_text (ncid,varid,'FORTRAN_format',4,'f7.2')
+      rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
+      rcode = nf90_put_att(ncid, varid, 'units', cunits)
+      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f7.2')
       if(calcRG) then
          !delta R
          cvar = 'delta_r'
          cvarl = 'changes in bedrock height'
          cunits = 'm'
-         ival4 = len(cvarl)
-         jval4 = len(cunits)
-         rcode = nf90_def_var (ncid, cvar, nf90_float, idim, varid)
-         rcode = nf90_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
-         rcode = nf90_put_att_text (ncid, varid, 'units', jval4, cunits)
-         rcode = nf90_put_att_text (ncid,varid,'FORTRAN_format',4,'f7.2')
+         rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+         rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
+         rcode = nf90_put_att(ncid, varid, 'units', cunits)
+         rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f7.2')
          !delta G
          cvar = 'delta_g'
          cvarl = 'Changes in geopotential height'
          cunits = 'm'
-         ival4 = len(cvarl)
-         jval4 = len(cunits)
-         rcode = nf90_def_var (ncid, cvar, nf90_float, idim, varid)
-         rcode = nf90_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
-         rcode = nf90_put_att_text (ncid, varid, 'units', jval4, cunits)
-         rcode = nf90_put_att_text (ncid,varid,'FORTRAN_format',4,'f7.2')
+         rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+         rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
+         rcode = nf90_put_att(ncid, varid, 'units', cunits)
+         rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f7.2')
 
          !Bed (R)
          cvar = 'bed'
          cvarl = 'bed/seafloor'
          cunits = 'm'
-         ival4 = len(cvarl)
-         jval4 = len(cunits)
-         rcode = nf90_def_var (ncid, cvar, nf90_float, idim, varid)
-         rcode = nf90_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
-         rcode = nf90_put_att_text (ncid, varid, 'units', jval4, cunits)
-         rcode = nf90_put_att_text (ncid,varid,'FORTRAN_format',4,'f7.2')
+         rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+         rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
+         rcode = nf90_put_att(ncid, varid, 'units', cunits)
+         rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f7.2')
       endif
 
       !delta rsl
       cvar = 'delta_rsl'
       cvarl = 'changes in local ocean depth'
       cunits = 'm'
-      ival4 = len(cvarl)
-      jval4 = len(cunits)
-      rcode = nf90_def_var (ncid, cvar, nf90_float, idim, varid)
-      rcode = nf90_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
-      rcode = nf90_put_att_text (ncid, varid, 'units', jval4, cunits)
-      rcode = nf90_put_att_text (ncid,varid,'FORTRAN_format',4,'f7.2')
+      rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
+      rcode = nf90_put_att(ncid, varid, 'units', cunits)
+      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f7.2')
 
 
       !3D variables (degree, order, time)
@@ -1077,41 +1052,35 @@ if (nmelt==0) then
       cvar = 'dS_converged'
       cvarl = 'Sea surface height in spectral coordinates'
       cunits = 'unitless'
-      ival4 = len(cvarl)
-      jval4 = len(cunits)
-      rcode = nf90_def_var (ncid, cvar, nf90_float, idim, varid)
-      rcode = nf90_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
-      rcode = nf90_put_att_text (ncid, varid, 'units', jval4, cunits)
-      rcode = nf90_put_att_text (ncid,varid,'FORTRAN_format',4,'f6.3')
+      rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
+      rcode = nf90_put_att(ncid, varid, 'units', cunits)
+      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.3')
       
    !additional new grdmip outputs
       !Clm
       cvar = 'Clm'
       cvarl = 'C_lm Stokes coefficients of changes in the gravity field wrt the initial simulation time'
       cunits = 'unitless'
-      ival4 = len(cvarl)
-      jval4 = len(cunits)
-      rcode = nf90_def_var (ncid, cvar, nf90_float, idim, varid)
-      rcode = nf90_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
-      rcode = nf90_put_att_text (ncid, varid, 'units', jval4, cunits)
-      rcode = nf90_put_att_text (ncid,varid,'FORTRAN_format',4,'f6.3')
+      rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
+      rcode = nf90_put_att(ncid, varid, 'units', cunits)
+      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.3')
       !Slm
       cvar = 'Slm'
       cvarl = 'S_lm Stokes coefficients of changes in the gravity field wrt the initial simulation time'
       cunits = 'unitless'
-      ival4 = len(cvarl)
-      jval4 = len(cunits)
-      rcode = nf90_def_var (ncid, cvar, nf90_float, idim, varid)
-      rcode = nf90_put_att_text (ncid, varid, 'long_name', ival4, cvarl)
-      rcode = nf90_put_att_text (ncid, varid, 'units', jval4, cunits)
-      rcode = nf90_put_att_text (ncid,varid,'FORTRAN_format',4,'f6.3')
+      rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
+      rcode = nf90_put_att(ncid, varid, 'units', cunits)
+      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.3')
 
       !Leave define mode
       rcode = nf90_enddef(ncid)
 
       !add start time to time dimension
       rcode = nf90_inq_varid(ncid, 'year', varid)
-      rcode = nf90_put_var(ncid, varid, starttime, iter+1) 
+      rcode = nf90_put_var(ncid, varid, starttime, /iter+1/, 1) 
 
       !write fields
       !1D fields
@@ -1123,7 +1092,7 @@ if (nmelt==0) then
          rcode = nf90_put_var(ncid, varid, ice_volume, start, count)
 
          rcode = nf90_inq_varid(ncid, 'grd_ice_mass', varid)
-         rcode = nf90_put_vara_double(ncid, varid, grounded_ice_volume*rhoi, start, count)
+         rcode = nf90_put_var(ncid, varid, grounded_ice_volume*rhoi, start, count)
 
          rcode = nf90_inq_varid(ncid, 'tot_ice_mass', varid)
          rcode = nf90_put_var(ncid, varid, ice_volume*rhoi, start, count)
