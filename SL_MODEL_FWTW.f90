@@ -870,7 +870,7 @@ if (nmelt==0) then
       cruntitle = 'Sea level model run'
       rcode = nf90_put_att(ncid, nf90_global, 'title', cruntitle)
 
-      do i = 1,nglv
+      do i = nglv,1,-1
          lat(i) = i*180./(1.0*nglv)
       enddo
 
@@ -980,7 +980,7 @@ if (nmelt==0) then
       cvar = 'beta'
       cvarl = 'Grounded ice mask'
       cunits = 'none'
-      rcode = nf90_def_var(ncid, cvar, nf90_float, (/yid, xid, timid/), varid)
+      rcode = nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid)
       rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
       rcode = nf90_put_att(ncid, varid, 'units', cunits)
       rcode = nf90_put_att(ncid,varid,'FORTRAN_format','I1')
@@ -988,7 +988,7 @@ if (nmelt==0) then
       cvar = 'Ocean'
       cvarl = 'Ocean mask'
       cunits = 'none'
-      rcode = nf90_def_var(ncid, cvar, nf90_float, (/yid, xid, timid/), varid)
+      rcode = nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid)
       rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
       rcode = nf90_put_att(ncid, varid, 'units', cunits)
       rcode = nf90_put_att(ncid,varid,'FORTRAN_format','I1')
@@ -996,7 +996,7 @@ if (nmelt==0) then
       cvar = 'tgrid'
       cvarl = 'Topography'
       cunits = 'm'
-      rcode = nf90_def_var(ncid, cvar, nf90_float, (/yid, xid, timid/), varid)
+      rcode = nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid)
       rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
       rcode = nf90_put_att(ncid, varid, 'units', cunits)
       rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f7.2')
@@ -1005,7 +1005,7 @@ if (nmelt==0) then
          cvar = 'delta_r'
          cvarl = 'changes in bedrock height'
          cunits = 'm'
-         rcode = nf90_def_var(ncid, cvar, nf90_float, (/yid, xid, timid/), varid)
+         rcode = nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid)
          rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
          rcode = nf90_put_att(ncid, varid, 'units', cunits)
          rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f7.2')
@@ -1013,7 +1013,7 @@ if (nmelt==0) then
          cvar = 'delta_g'
          cvarl = 'Changes in geopotential height'
          cunits = 'm'
-         rcode = nf90_def_var(ncid, cvar, nf90_float, (/yid, xid, timid/), varid)
+         rcode = nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid)
          rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
          rcode = nf90_put_att(ncid, varid, 'units', cunits)
          rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f7.2')
@@ -1022,7 +1022,7 @@ if (nmelt==0) then
          cvar = 'bed'
          cvarl = 'bed/seafloor'
          cunits = 'm'
-         rcode = nf90_def_var(ncid, cvar, nf90_float, (/yid, xid, timid/), varid)
+         rcode = nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid)
          rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
          rcode = nf90_put_att(ncid, varid, 'units', cunits)
          rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f7.2')
@@ -1032,7 +1032,7 @@ if (nmelt==0) then
       cvar = 'delta_rsl'
       cvarl = 'changes in local ocean depth'
       cunits = 'm'
-      rcode = nf90_def_var(ncid, cvar, nf90_float, (/yid, xid, timid/), varid)
+      rcode = nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid)
       rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
       rcode = nf90_put_att(ncid, varid, 'units', cunits)
       rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f7.2')
@@ -1107,9 +1107,9 @@ if (nmelt==0) then
       !3D fields
       !y,x,time
       start(1) = 1
-      count(1) = nglv
+      count(1) = nglv*2
       start(2) = 1
-      count(2) = nglv*2
+      count(2) = nglv
       start(3) = iter + 1
       count(3) = 1
 
