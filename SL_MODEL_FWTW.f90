@@ -320,7 +320,7 @@ integer :: rcode, ncid, varid, lenattr
 integer :: ival4, jval4, len
 integer :: xid, yid, timid, ordid, degid
 integer, dimension(4) :: idim, start, count
-character(16) :: cvar, cunits
+character(24) :: cvar, cunits
 character(80) :: cruntitle, cvarl
 character(*), parameter :: chist = 'SL_model.nc'
 integer, dimension(0:norder) :: order_list, degree_list
@@ -871,7 +871,7 @@ if (nmelt==0) then
       rcode = nf90_put_att(ncid, nf90_global, 'title', cruntitle)
 
       do i = nglv,1,-1
-         lat(i) = i*180./(1.0*nglv)
+         lat(nglv-i) = i*180./(1.0*nglv) - 90
       enddo
 
       do i = 1,2*nglv
