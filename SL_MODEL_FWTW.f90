@@ -227,7 +227,6 @@ real, dimension(:,:,:), allocatable :: sl       ! Big arrays of sea level change
 complex, dimension(:,:,:), allocatable:: dicestar,dS,deltaicestar,deltaS! Big arrays of changes in loads               |
                                                                                        !  used in Love number viscous   | 
                                                                                        !  response    
-complex, dimension(:,:), allocatable :: Clm,Slm                      ! GRDMIP outputs
 real, dimension(:,:,:), allocatable :: rr,gg                         !  R and G (radial displacement and geoid change)  |
 complex, dimension(:,:,:), allocatable :: dlambda, deltalambda       ! Big arrays of changes in rotational driving      |
 real, dimension(:,:,:), allocatable :: dil                           ! Big array of changes in IL                       |
@@ -262,6 +261,9 @@ real, dimension(nglv,2*nglv) :: tOxy, rOxy, tTxy         ! Projections used to c
 complex, dimension(0:norder,0:norder) :: cstarlm,oldcstarlm,tOlm,rOlm,dSlm,olddSlm,&
                                          icestarlm,dicestarlm,deltaicestarlm,oldicestarlm,icestar0, &
                                          t0lm,oldt0lm,tTlm,oldtTlm,dsllm,deltasllm,icelm  ! Above, in spectral domain
+complex, dimension(0:norder,0:norder) :: Clm,Slm                      ! GRDMIP outputs
+real, dimension(0:norder,0:norder) :: deltaS_real, delta_S_img, Clm_real, Clm_img, Slm_real, Slm_img
+
 
 real :: conserv                                          ! Uniform geoid shift (ΔΦ/g)
 real :: ttl, ekhl                                        ! Used in Love number calculations
@@ -551,7 +553,6 @@ allocate (times(nfiles), lovebetatt(nfiles), lovebetattrr(nfiles))
 allocate (lovebetarr(nfiles,norder),lovebeta(nfiles,norder))
 allocate (icexy(nglv, 2*nglv, nfiles),sl(nglv,2*nglv,nfiles))                     
 allocate (dS(0:norder,0:norder,nfiles),deltaS(0:norder,0:norder,nfiles))   
-allocate (Clm(0:norder,0:norder),Slm(0:norder,0:norder))   
 allocate (dicestar(0:norder,0:norder,nfiles), deltaicestar(0:norder,0:norder,nfiles))               
 allocate (rr(nglv,2*nglv,nfiles),gg(nglv,2*nglv,nfiles))      
 allocate (dil(3,3,nfiles), dlambda(0:2,0:2,TW_nfiles),deltalambda(0:2,0:2,nfiles))
@@ -1049,8 +1050,16 @@ if (nmelt==0) then
       idim(3) = timid
 
       !dS_converged
-      cvar = 'dS_converged'
-      cvarl = 'Sea surface height in spectral coordinates'
+      cvar = 'dS_converged_real'
+      cvarl = 'Sea surface height in spectral coordinates (real component)'
+      cunits = 'unitless'
+      rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
+      rcode = nf90_put_att(ncid, varid, 'units', cunits)
+      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.3')
+
+      cvar = 'dS_converged_img'
+      cvarl = 'Sea surface height in spectral coordinates (imaginary component)'
       cunits = 'unitless'
       rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
       rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
@@ -1058,22 +1067,22 @@ if (nmelt==0) then
       rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.3')
       
    !additional new grdmip outputs
-      !Clm
-      cvar = 'Clm'
-      cvarl = 'C_lm Stokes coefficients of changes in the gravity field wrt the initial simulation time'
-      cunits = 'unitless'
-      rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
-      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
-      rcode = nf90_put_att(ncid, varid, 'units', cunits)
-      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.3')
-      !Slm
-      cvar = 'Slm'
-      cvarl = 'S_lm Stokes coefficients of changes in the gravity field wrt the initial simulation time'
-      cunits = 'unitless'
-      rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
-      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
-      rcode = nf90_put_att(ncid, varid, 'units', cunits)
-      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.3')
+      ! !Clm
+      ! cvar = 'Clm'
+      ! cvarl = 'C_lm Stokes coefficients of changes in the gravity field wrt the initial simulation time'
+      ! cunits = 'unitless'
+      ! rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+      ! rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
+      ! rcode = nf90_put_att(ncid, varid, 'units', cunits)
+      ! rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.3')
+      ! !Slm
+      ! cvar = 'Slm'
+      ! cvarl = 'S_lm Stokes coefficients of changes in the gravity field wrt the initial simulation time'
+      ! cunits = 'unitless'
+      ! rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+      ! rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
+      ! rcode = nf90_put_att(ncid, varid, 'units', cunits)
+      ! rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.3')
 
       !Leave define mode
       rcode = nf90_enddef(ncid)
@@ -1150,16 +1159,26 @@ if (nmelt==0) then
       start(3) = iter + 1
       count(3) = 1
 
-      rcode = nf90_inq_varid(ncid, 'dS_converged', varid)
-      rcode = nf90_put_var(ncid, varid, deltaS(:,:,1), start)
+      do i = 0, norder
+         do j = 0, norder
+         deltaS_real(i,j) = real(deltaS(i,j,1))
+         deltaS_img(i,j)  = aimag(deltaS(i,j,1))
+         enddo
+      enddo
 
-      Clm = 0
-      Slm = 0 !both Clm and Slm are with respect to the original time so initalize at zero
-      rcode = nf90_inq_varid(ncid, 'Clm', varid)
-      rcode = nf90_put_var(ncid, varid, Clm, start)
+      rcode = nf90_inq_varid(ncid, 'dS_converged_real', varid)
+      rcode = nf90_put_var(ncid, varid, deltaS_real(:,:), start)
 
-      rcode = nf90_inq_varid(ncid, 'Slm', varid)
-      rcode = nf90_put_var(ncid, varid, Slm, start)
+      rcode = nf90_inq_varid(ncid, 'dS_converged_img', varid)
+      rcode = nf90_put_var(ncid, varid, deltaS_img(:,:), start)
+
+      ! Clm = 0
+      ! Slm = 0 !both Clm and Slm are with respect to the original time so initalize at zero
+      ! rcode = nf90_inq_varid(ncid, 'Clm', varid)
+      ! rcode = nf90_put_var(ncid, varid, Clm, start)
+
+      ! rcode = nf90_inq_varid(ncid, 'Slm', varid)
+      ! rcode = nf90_put_var(ncid, varid, Slm, start)
 
       rcode = nf90_redef(ncid)
       rcode = nf90_close(ncid)
@@ -1976,7 +1995,7 @@ if (nmelt.GT.0) then
 
       !add current time to time dimension
       rcode = nf90_inq_varid(ncid, 'year', varid)
-      rcode = nf90_put_var(ncid, varid, starttime + dtime*(iter), iter+1, 1) 
+      rcode = nf90_put_var(ncid, varid, starttime + dtime*(iter), iter+1) 
 
       !write fields
       !1D fields
@@ -2040,8 +2059,18 @@ if (nmelt.GT.0) then
       start(3) = iter + 1
       count(3) = 1
 
-      rcode = nf90_inq_varid(ncid, 'dS_converged', varid)
-      rcode = nf90_put_var(ncid, varid, deltaS(:,:,nfiles), start)
+      do i = 0, norder
+         do j = 0, norder
+            deltaS_real(i,j) = real(deltaS(i,j,nfiles))
+            deltaS_img(i,j)  = aimag(deltaS(i,j,nfiles))
+         enddo
+      enddo
+
+      rcode = nf90_inq_varid(ncid, 'dS_converged_real', varid)
+      rcode = nf90_put_var(ncid, varid, deltaS_real(:,:), start)
+
+      rcode = nf90_inq_varid(ncid, 'dS_converged_img', varid)
+      rcode = nf90_put_var(ncid, varid, deltaS_img(:,:), start)
 
       Clm = 0
       Slm = 0 !both Clm and Slm are with respect to the original time so initalize at zero
@@ -2062,8 +2091,7 @@ endif !endif nmaelt>0
 
 deallocate (times, lovebetatt, lovebetattrr)
 deallocate (lovebetarr,lovebeta)
-deallocate (icexy,sl)                     
-deallocate (Clm,Slm)   
+deallocate (icexy,sl)   
 deallocate (dS,deltaS)   
 deallocate (dicestar, deltaicestar)               
 deallocate (rr,gg)      
