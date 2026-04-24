@@ -903,7 +903,7 @@ if (nmelt==0) then
       rcode = nf90_redef(ncid)
 
       !add degree and order dimensions
-      rcode = nf90_def_dim(ncid, 'degree', norder, degid)
+      rcode = nf90_def_dim(ncid, 'degree', norder + 1, degid)
       rcode = nf90_def_var(ncid, 'degree', nf90_int, degid, varid)
       rcode = nf90_put_att(ncid, varid, 'units', 'unitless')
       rcode = nf90_put_att(ncid, varid, 'FORTRAN_format', 'I4')
@@ -911,7 +911,7 @@ if (nmelt==0) then
       rcode = nf90_put_var(ncid, varid, degree_list(:)) !put degree into netcdf
       rcode = nf90_redef(ncid)
 
-      rcode = nf90_def_dim(ncid, 'order', norder, ordid)
+      rcode = nf90_def_dim(ncid, 'order', norder + 1, ordid)
       rcode = nf90_def_var(ncid, 'order', nf90_int, ordid, varid)
       rcode = nf90_put_att(ncid, varid, 'units', 'unitless')
       rcode = nf90_put_att(ncid, varid, 'FORTRAN_format', 'I4')
@@ -929,14 +929,13 @@ if (nmelt==0) then
       !Variable dimensions and attrs
 
       !1D variables (only time)
-      idim(1) = timid
 
       if(iceVolume) then
          !ice volume
          cvar = 'ice_vol'
          cvarl = 'ice volume'
          cunits = 'm3'
-         rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+         rcode = nf90_def_var(ncid, cvar, nf90_float, timid, varid)
          rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
          rcode = nf90_put_att(ncid, varid, 'units', cunits)
          rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f20.3')      
@@ -945,7 +944,7 @@ if (nmelt==0) then
          cvar = 'grd_ice_mass'
          cvarl = 'grounded ice mass'
          cunits = 'kg'
-         rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+         rcode = nf90_def_var(ncid, cvar, nf90_float, timid, varid)
          rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
          rcode = nf90_put_att(ncid, varid, 'units', cunits)
          rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f20.3')    
@@ -953,7 +952,7 @@ if (nmelt==0) then
          cvar = 'tot_ice_mass'
          cvarl = 'total ice mass'
          cunits = 'kg'
-         rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+         rcode = nf90_def_var(ncid, cvar, nf90_float, timid, varid)
          rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
          rcode = nf90_put_att(ncid, varid, 'units', cunits)
          rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f20.3')    
@@ -962,7 +961,7 @@ if (nmelt==0) then
       cvar = 'bslc'
       cvarl = 'barystatic sea level change'
       cunits = 'm'
-      rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+      rcode = nf90_def_var(ncid, cvar, nf90_float, timid, varid)
       rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
       rcode = nf90_put_att(ncid, varid, 'units', cunits)
       rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.2')    
@@ -970,21 +969,18 @@ if (nmelt==0) then
       cvar = 'mean_delta_g'
       cvarl = 'Ocean area mean of changes in geoid'
       cunits = 'm'
-      rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+      rcode = nf90_def_var(ncid, cvar, nf90_float, timid, varid)
       rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
       rcode = nf90_put_att(ncid, varid, 'units', cunits)
       rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.2')
 
       !3D variables (lat, lon, time)
-      idim(1) = yid
-      idim(2) = xid
-      idim(3) = timid
       
       !beta
       cvar = 'beta'
       cvarl = 'Grounded ice mask'
       cunits = 'none'
-      rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+      rcode = nf90_def_var(ncid, cvar, nf90_float, (/yid, xid, timid/), varid)
       rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
       rcode = nf90_put_att(ncid, varid, 'units', cunits)
       rcode = nf90_put_att(ncid,varid,'FORTRAN_format','I1')
@@ -992,7 +988,7 @@ if (nmelt==0) then
       cvar = 'Ocean'
       cvarl = 'Ocean mask'
       cunits = 'none'
-      rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+      rcode = nf90_def_var(ncid, cvar, nf90_float, (/yid, xid, timid/), varid)
       rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
       rcode = nf90_put_att(ncid, varid, 'units', cunits)
       rcode = nf90_put_att(ncid,varid,'FORTRAN_format','I1')
@@ -1000,7 +996,7 @@ if (nmelt==0) then
       cvar = 'tgrid'
       cvarl = 'Topography'
       cunits = 'm'
-      rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+      rcode = nf90_def_var(ncid, cvar, nf90_float, (/yid, xid, timid/), varid)
       rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
       rcode = nf90_put_att(ncid, varid, 'units', cunits)
       rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f7.2')
@@ -1009,7 +1005,7 @@ if (nmelt==0) then
          cvar = 'delta_r'
          cvarl = 'changes in bedrock height'
          cunits = 'm'
-         rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+         rcode = nf90_def_var(ncid, cvar, nf90_float, (/yid, xid, timid/), varid)
          rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
          rcode = nf90_put_att(ncid, varid, 'units', cunits)
          rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f7.2')
@@ -1017,7 +1013,7 @@ if (nmelt==0) then
          cvar = 'delta_g'
          cvarl = 'Changes in geopotential height'
          cunits = 'm'
-         rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+         rcode = nf90_def_var(ncid, cvar, nf90_float, (/yid, xid, timid/), varid)
          rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
          rcode = nf90_put_att(ncid, varid, 'units', cunits)
          rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f7.2')
@@ -1026,7 +1022,7 @@ if (nmelt==0) then
          cvar = 'bed'
          cvarl = 'bed/seafloor'
          cunits = 'm'
-         rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+         rcode = nf90_def_var(ncid, cvar, nf90_float, (/yid, xid, timid/), varid)
          rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
          rcode = nf90_put_att(ncid, varid, 'units', cunits)
          rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f7.2')
@@ -1036,7 +1032,7 @@ if (nmelt==0) then
       cvar = 'delta_rsl'
       cvarl = 'changes in local ocean depth'
       cunits = 'm'
-      rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+      rcode = nf90_def_var(ncid, cvar, nf90_float, (/yid, xid, timid/), varid)
       rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
       rcode = nf90_put_att(ncid, varid, 'units', cunits)
       rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f7.2')
@@ -1044,16 +1040,11 @@ if (nmelt==0) then
 
       !3D variables (degree, order, time)
 
-      ndim    = 3
-      idim(1) = degid
-      idim(2) = ordid
-      idim(3) = timid
-
       !dS_converged
       cvar = 'dS_converged_real'
       cvarl = 'Sea surface height in spectral coordinates (real component)'
       cunits = 'unitless'
-      rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+      rcode = nf90_def_var(ncid, cvar, nf90_float, (/degid, ordid, timid/), varid)
       rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
       rcode = nf90_put_att(ncid, varid, 'units', cunits)
       rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.3')
@@ -1061,7 +1052,7 @@ if (nmelt==0) then
       cvar = 'dS_converged_img'
       cvarl = 'Sea surface height in spectral coordinates (imaginary component)'
       cunits = 'unitless'
-      rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+      rcode = nf90_def_var(ncid, cvar, nf90_float, (/degid, ordid, timid/), varid)
       rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
       rcode = nf90_put_att(ncid, varid, 'units', cunits)
       rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.3')
@@ -1071,7 +1062,7 @@ if (nmelt==0) then
       ! cvar = 'Clm'
       ! cvarl = 'C_lm Stokes coefficients of changes in the gravity field wrt the initial simulation time'
       ! cunits = 'unitless'
-      ! rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+      ! rcode = nf90_def_var(ncid, cvar, nf90_float, (/degid, ordid, timid/), varid)
       ! rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
       ! rcode = nf90_put_att(ncid, varid, 'units', cunits)
       ! rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.3')
@@ -1079,7 +1070,7 @@ if (nmelt==0) then
       ! cvar = 'Slm'
       ! cvarl = 'S_lm Stokes coefficients of changes in the gravity field wrt the initial simulation time'
       ! cunits = 'unitless'
-      ! rcode = nf90_def_var(ncid, cvar, nf90_float, idim, varid)
+      ! rcode = nf90_def_var(ncid, cvar, nf90_float, (/degid, ordid, timid/), varid)
       ! rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
       ! rcode = nf90_put_att(ncid, varid, 'units', cunits)
       ! rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.3')
