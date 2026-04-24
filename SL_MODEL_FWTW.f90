@@ -2079,17 +2079,7 @@ if (nmelt.GT.0) then
    endif
 
 endif !endif nmaelt>0
-
-deallocate (times, lovebetatt, lovebetattrr)
-deallocate (lovebetarr,lovebeta)
-deallocate (icexy,sl)   
-deallocate (dS,deltaS)   
-deallocate (dicestar, deltaicestar)               
-deallocate (rr,gg)      
-deallocate (dil, dlambda,deltalambda)
-deallocate (dm)   
-deallocate (mask,iceload,icefiles)
-deallocate (TIMEWINDOW)      
+  
 
 
 call system_clock(countf) ! Total time
@@ -2116,4 +2106,17 @@ if (Travel_total > 0 .and. Travel == Travel_total) then
    write(*,*) ' GREAT JOB TW!'
 endif
 write(*,*) ''
+
+
+deallocate (times, lovebetatt, lovebetattrr)
+deallocate (lovebetarr,lovebeta)
+deallocate (icexy,sl)   
+deallocate (dS,deltaS)   
+deallocate (dicestar, deltaicestar)               
+deallocate (rr,gg)      
+deallocate (dil, dlambda,deltalambda)
+deallocate (dm)   
+deallocate (mask,iceload,icefiles)
+deallocate (TIMEWINDOW)    
+
 end program sl_model
