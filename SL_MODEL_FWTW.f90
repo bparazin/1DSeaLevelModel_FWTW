@@ -1993,14 +1993,13 @@ if (nmelt.GT.0) then
          write(8, '(A,I6)') 'Opening NETCDF failed with error code', rcode
       endif
 
-
-      !add current time to time dimension
-      rcode = nf90_inq_varid(ncid, 'year', varid)
-      rcode = nf90_put_var(ncid, varid, starttime + current_time, iter+1) 
-
       !write fields
       !1D fields
       start(1) = iter + 1
+
+      !add current time to time dimension
+      rcode = nf90_inq_varid(ncid, 'year', varid)
+      rcode = nf90_put_var(ncid, varid, starttime + current_time, start) 
 
       if(iceVolume) then
          rcode = nf90_inq_varid(ncid, 'ice_vol', varid)
