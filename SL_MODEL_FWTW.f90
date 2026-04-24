@@ -262,7 +262,7 @@ complex, dimension(0:norder,0:norder) :: cstarlm,oldcstarlm,tOlm,rOlm,dSlm,olddS
                                          icestarlm,dicestarlm,deltaicestarlm,oldicestarlm,icestar0, &
                                          t0lm,oldt0lm,tTlm,oldtTlm,dsllm,deltasllm,icelm  ! Above, in spectral domain
 complex, dimension(0:norder,0:norder) :: Clm,Slm                      ! GRDMIP outputs
-real, dimension(0:norder,0:norder) :: deltaS_real, delta_S_img, Clm_real, Clm_img, Slm_real, Slm_img
+real, dimension(0:norder,0:norder) :: deltaS_real, deltaS_img, Clm_real, Clm_img, Slm_real, Slm_img
 
 
 real :: conserv                                          ! Uniform geoid shift (ΔΦ/g)
@@ -1993,9 +1993,10 @@ if (nmelt.GT.0) then
          write(8, '(A,I6)') 'Opening NETCDF failed with error code', rcode
       endif
 
+
       !add current time to time dimension
       rcode = nf90_inq_varid(ncid, 'year', varid)
-      rcode = nf90_put_var(ncid, varid, starttime + dtime*(iter), iter+1) 
+      rcode = nf90_put_var(ncid, varid, starttime + current_time, iter+1) 
 
       !write fields
       !1D fields
@@ -2072,13 +2073,13 @@ if (nmelt.GT.0) then
       rcode = nf90_inq_varid(ncid, 'dS_converged_img', varid)
       rcode = nf90_put_var(ncid, varid, deltaS_img(:,:), start)
 
-      Clm = 0
-      Slm = 0 !both Clm and Slm are with respect to the original time so initalize at zero
-      rcode = nf90_inq_varid(ncid, 'Clm', varid)
-      rcode = nf90_put_var(ncid, varid, Clm, start) !todo
+      ! Clm = 0
+      ! Slm = 0 !both Clm and Slm are with respect to the original time so initalize at zero
+      ! rcode = nf90_inq_varid(ncid, 'Clm', varid)
+      ! rcode = nf90_put_var(ncid, varid, Clm, start) !todo
 
-      rcode = nf90_inq_varid(ncid, 'Slm', varid)
-      rcode = nf90_put_var(ncid, varid, Slm, start) !todo
+      ! rcode = nf90_inq_varid(ncid, 'Slm', varid)
+      ! rcode = nf90_put_var(ncid, varid, Slm, start) !todo
 
       rcode = nf90_redef(ncid)
       rcode = nf90_close(ncid)
