@@ -1082,7 +1082,7 @@ if (nmelt==0) then
       start(1) = iter + 1
 
       !add start time to time dimension
-      rcode = nf90_inq_varid(ncid, 'year', varid)
+      rcode = nf90_inq_varid(ncid, 'time', varid)
       rcode = nf90_put_var(ncid, varid, starttime, start) 
 
       !write fields
@@ -1989,8 +1989,8 @@ if (nmelt.GT.0) then
       start(1) = iter + 1
 
       !add current time to time dimension
-      rcode = nf90_inq_varid(ncid, 'year', varid)
-      rcode = nf90_put_var(ncid, varid, starttime + current_time, start) 
+      rcode = nf90_inq_varid(ncid, 'time', varid)
+      rcode = nf90_put_var(ncid, varid, starttime + dtime*iter, start) 
 
       if(iceVolume) then
          rcode = nf90_inq_varid(ncid, 'ice_vol', varid)
@@ -2012,9 +2012,9 @@ if (nmelt.GT.0) then
       !3D fields
       !y,x,time
       start(1) = 1
-      count(1) = nglv
+      count(1) = nglv*2
       start(2) = 1
-      count(2) = nglv*2
+      count(2) = nglv
       start(3) = iter + 1
       count(3) = 1
 
