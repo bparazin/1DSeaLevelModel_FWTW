@@ -1078,31 +1078,31 @@ if (nmelt==0) then
       !Leave define mode
       rcode = nf90_enddef(ncid)
 
-      !add start time to time dimension
-      rcode = nf90_inq_varid(ncid, 'year', varid)
-      rcode = nf90_put_var(ncid, varid, starttime, /iter+1/, 1) 
-
-      !write fields
       !1D fields
       start(1) = iter + 1
-      count(1) = 1
+
+      !add start time to time dimension
+      rcode = nf90_inq_varid(ncid, 'year', varid)
+      rcode = nf90_put_var(ncid, varid, starttime, start) 
+
+      !write fields
 
       if(iceVolume) then
          rcode = nf90_inq_varid(ncid, 'ice_vol', varid)
-         rcode = nf90_put_var(ncid, varid, ice_volume, start, count)
+         rcode = nf90_put_var(ncid, varid, ice_volume, start)
 
          rcode = nf90_inq_varid(ncid, 'grd_ice_mass', varid)
-         rcode = nf90_put_var(ncid, varid, grounded_ice_volume*rhoi, start, count)
+         rcode = nf90_put_var(ncid, varid, (grounded_ice_volume*rhoi), start)
 
          rcode = nf90_inq_varid(ncid, 'tot_ice_mass', varid)
-         rcode = nf90_put_var(ncid, varid, ice_volume*rhoi, start, count)
+         rcode = nf90_put_var(ncid, varid, (ice_volume*rhoi), start)
       endif
 
       rcode = nf90_inq_varid(ncid, 'bslc', varid)
-      rcode = nf90_put_var(ncid, varid, 0, start, count) !no change in barystatic sea level at initial time step
+      rcode = nf90_put_var(ncid, varid, 0, start) !no change in barystatic sea level at initial time step
 
       rcode = nf90_inq_varid(ncid, 'mean_delta_g', varid)
-      rcode = nf90_put_var(ncid, varid, 0, start, count) !no change in delta g at initial time step
+      rcode = nf90_put_var(ncid, varid, 0, start) !no change in delta g at initial time step
 
       !3D fields
       !y,x,time
@@ -1151,15 +1151,15 @@ if (nmelt==0) then
       count(3) = 1
 
       rcode = nf90_inq_varid(ncid, 'dS_converged', varid)
-      rcode = nf90_put_var(ncid, varid, deltaS(:,:,1), start, count)
+      rcode = nf90_put_var(ncid, varid, deltaS(:,:,1), start)
 
       Clm = 0
       Slm = 0 !both Clm and Slm are with respect to the original time so initalize at zero
       rcode = nf90_inq_varid(ncid, 'Clm', varid)
-      rcode = nf90_put_var(ncid, varid, Clm, start, count)
+      rcode = nf90_put_var(ncid, varid, Clm, start)
 
       rcode = nf90_inq_varid(ncid, 'Slm', varid)
-      rcode = nf90_put_var(ncid, varid, Clm, start, count)
+      rcode = nf90_put_var(ncid, varid, Slm, start)
 
       rcode = nf90_redef(ncid)
       rcode = nf90_close(ncid)
@@ -1981,24 +1981,23 @@ if (nmelt.GT.0) then
       !write fields
       !1D fields
       start(1) = iter + 1
-      count(1) = 1
 
       if(iceVolume) then
          rcode = nf90_inq_varid(ncid, 'ice_vol', varid)
-         rcode = nf90_put_var(ncid, varid, ice_volume, start, count)
+         rcode = nf90_put_var(ncid, varid, ice_volume, start)
 
          rcode = nf90_inq_varid(ncid, 'grd_ice_mass', varid)
-         rcode = nf90_put_var(ncid, varid, grounded_ice_volume*rhoi, start, count)
+         rcode = nf90_put_var(ncid, varid, grounded_ice_volume*rhoi, start)
 
          rcode = nf90_inq_varid(ncid, 'tot_ice_mass', varid)
-         rcode = nf90_put_var(ncid, varid, ice_volume*rhoi, start, count)
+         rcode = nf90_put_var(ncid, varid, ice_volume*rhoi, start)
       endif
 
       rcode = nf90_inq_varid(ncid, 'bslc', varid)
-      rcode = nf90_put_var(ncid, varid, 0, start, count) !todo
+      rcode = nf90_put_var(ncid, varid, 0, start) !todo
 
       rcode = nf90_inq_varid(ncid, 'mean_delta_g', varid)
-      rcode = nf90_put_var(ncid, varid, 0, start, count) !todo
+      rcode = nf90_put_var(ncid, varid, 0, start) !todo
 
       !3D fields
       !y,x,time
@@ -2042,15 +2041,15 @@ if (nmelt.GT.0) then
       count(3) = 1
 
       rcode = nf90_inq_varid(ncid, 'dS_converged', varid)
-      rcode = nf90_put_var(ncid, varid, deltaS(:,:,nfiles), start, count)
+      rcode = nf90_put_var(ncid, varid, deltaS(:,:,nfiles), start)
 
       Clm = 0
       Slm = 0 !both Clm and Slm are with respect to the original time so initalize at zero
       rcode = nf90_inq_varid(ncid, 'Clm', varid)
-      rcode = nf90_put_var(ncid, varid, Clm, start, count) !todo
+      rcode = nf90_put_var(ncid, varid, Clm, start) !todo
 
       rcode = nf90_inq_varid(ncid, 'Slm', varid)
-      rcode = nf90_put_var(ncid, varid, Slm, start, count) !todo
+      rcode = nf90_put_var(ncid, varid, Slm, start) !todo
 
       rcode = nf90_redef(ncid)
       rcode = nf90_close(ncid)
