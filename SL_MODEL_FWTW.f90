@@ -267,6 +267,7 @@ real, dimension(0:norder,0:norder) :: deltaS_real, deltaS_img, Clm_real, Clm_img
 
 real :: conserv                                          ! Uniform geoid shift (ΔΦ/g)
 real :: ttl, ekhl                                        ! Used in Love number calculations
+real :: total_delta_g, ocean_area                        ! Used for GRDMIP outputs
 complex, dimension(0:norder,0:norder) :: viscous         ! Used in Love number calculations
 real :: xi, zeta                                         ! Convergence checks
 real :: ice_volume, grounded_ice_volume                  ! ice volume, if checkmarine is false, these will be same as model assumes
@@ -2017,7 +2018,7 @@ if (nmelt.GT.0) then
                ggxy(i,j) = cstarxy(i,j) * gg(i,j, nfiles)
             enddo
          enddo
-         call spat2spec(ggxy(:), gglm(:,:), spheredat)
+         call spat2spec(ggxy(:,:), gglm(:,:), spheredat)
 
         total_delta_g = gglm(0,0)*4*pi*radius**2
         ocean_area = cstarlm(0,0)*4*pi*radius**2
