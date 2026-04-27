@@ -272,8 +272,8 @@ real :: xi, zeta                                         ! Convergence checks
 real :: ice_volume, grounded_ice_volume                  ! ice volume, if checkmarine is false, these will be same as model assumes
                                                          ! all ice is grounded
 ! For calculating R and G separately
-real, dimension(nglv,2*nglv) :: rrxy, drrxy_computed
-complex, dimension(0:norder,0:norder) :: rrlm, dgglm, drrlm_computed
+real, dimension(nglv,2*nglv) :: rrxy, drrxy_computed, ggxy
+complex, dimension(0:norder,0:norder) :: rrlm, dgglm, drrlm_computed, gglm
 
 complex :: viscousrr
 
@@ -966,13 +966,15 @@ if (nmelt==0) then
       rcode = nf90_put_att(ncid, varid, 'units', cunits)
       rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.2')    
       !mean delta g
-      cvar = 'mean_delta_g'
-      cvarl = 'Ocean area mean of changes in geoid'
-      cunits = 'm'
-      rcode = nf90_def_var(ncid, cvar, nf90_float, timid, varid)
-      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
-      rcode = nf90_put_att(ncid, varid, 'units', cunits)
-      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.2')
+      if(calcRG) then
+         cvar = 'mean_delta_g'
+         cvarl = 'Ocean area mean of changes in geoid'
+         cunits = 'm'
+         rcode = nf90_def_var(ncid, cvar, nf90_float, timid, varid)
+         rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
+         rcode = nf90_put_att(ncid, varid, 'units', cunits)
+         rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.2')
+      endif
 
       !3D variables (lat, lon, time)
       
@@ -1101,8 +1103,10 @@ if (nmelt==0) then
       rcode = nf90_inq_varid(ncid, 'bslc', varid)
       rcode = nf90_put_var(ncid, varid, 0, start) !no change in barystatic sea level at initial time step
 
-      rcode = nf90_inq_varid(ncid, 'mean_delta_g', varid)
-      rcode = nf90_put_var(ncid, varid, 0, start) !no change in delta g at initial time step
+      if(calcRG) then
+         rcode = nf90_inq_varid(ncid, 'mean_delta_g', varid)
+         rcode = nf90_put_var(ncid, varid, 0, start) !no change in delta g at initial time step
+      endif
 
       !3D fields
       !y,x,time
@@ -1830,7 +1834,7 @@ if (calcRG) then ! For R calculations
    endif
    rrlm(0:2,0:2) = rrlm(0:2,0:2) + rr_rot(0:2,0:2)
    call spec2spat(rrxy, rrlm, spheredat)
-   rr(:,:,n) = rrxy(:,:)
+   rr(:,:,nfiles) = rrxy(:,:)
 endif
  
 
@@ -1939,15 +1943,15 @@ if (nmelt.GT.0) then
    if (calcRG) then
       open(unit = 1, file = trim(adjustl(outputfolder))//'R'//trim(numstr)//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
       & status = 'replace')
-      write(1,'(ES14.4E2)') rr(:,:,n)
+      write(1,'(ES14.4E2)') rr(:,:,nfiles)
       close(1)
       
       ! Compute geoid displacement
-      gg(:,:,n) = deltaslxy(:,:)+rr(:,:,n)
+      gg(:,:,nfiles) = deltaslxy(:,:)+rr(:,:,nfiles)
     
       open(unit = 1, file = trim(adjustl(outputfolder))//'G'//trim(numstr)//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
       & status = 'replace')
-      write(1,'(ES14.4E2)') gg(:,:,n)
+      write(1,'(ES14.4E2)') gg(:,:,nfiles)
       close(1)
    endif
 
@@ -2006,8 +2010,22 @@ if (nmelt.GT.0) then
       rcode = nf90_inq_varid(ncid, 'bslc', varid)
       rcode = nf90_put_var(ncid, varid, 0, start) !todo
 
-      rcode = nf90_inq_varid(ncid, 'mean_delta_g', varid)
-      rcode = nf90_put_var(ncid, varid, 0, start) !todo
+      if(calcRG) then
+         !grdmip outputs specifically call for mean delta G over ocean
+         do i = 1, nglv
+            do j = 1, nglv*2
+               ggxy(i,j) = cstarxy(i,j) * gg(i,j, nfiles)
+            enddo
+         enddo
+         call spat2spec(ggxy(:), gglm(:,:), spheredat)
+
+        total_delta_g = gglm(0,0)*4*pi*radius**2
+        ocean_area = cstarlm(0,0)*4*pi*radius**2
+
+         rcode = nf90_inq_varid(ncid, 'mean_delta_g', varid)
+         rcode = nf90_put_var(ncid, varid, total_delta_g/ocean_area, start) !todo
+
+      endif
 
       !3D fields
       !y,x,time
@@ -2029,13 +2047,13 @@ if (nmelt.GT.0) then
 
       if(calcRG) then
          rcode = nf90_inq_varid(ncid, 'delta_r', varid)
-         rcode = nf90_put_var(ncid, varid, rr(:,:,n), start, count)
+         rcode = nf90_put_var(ncid, varid, rr(:,:,nfiles), start, count)
 
          rcode = nf90_inq_varid(ncid, 'delta_g', varid)
-         rcode = nf90_put_var(ncid, varid, gg(:,:,n), start, count)
+         rcode = nf90_put_var(ncid, varid, gg(:,:,nfiles), start, count)
 
          rcode = nf90_inq_varid(ncid, 'bed', varid)
-         rcode = nf90_put_var(ncid, varid, tinit_0 + rr(:,:,n), start, count) !reference ellipsoid is G at t=0, so bed
+         rcode = nf90_put_var(ncid, varid, tinit_0 + rr(:,:,nfiles), start, count) !reference ellipsoid is G at t=0, so bed
                                                                                  ! is tinit_0+delta_r
       endif
 
@@ -2106,7 +2124,6 @@ if (Travel_total > 0 .and. Travel == Travel_total) then
    write(*,*) ' GREAT JOB TW!'
 endif
 write(*,*) ''
-
 
 deallocate (times, lovebetatt, lovebetattrr)
 deallocate (lovebetarr,lovebeta)
