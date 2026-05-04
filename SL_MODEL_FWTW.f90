@@ -2012,7 +2012,7 @@ if (nmelt.GT.0) then
          rcode = nf90_put_var(ncid, varid, ice_volume*rhoi, start)
       endif
 
-      bslc = ((deltaicestar(0,0,nfiles)*4*pi*radius**2)*rhoi) / (rhow*ocean_area)
+      bslc = -((deltaicestar(0,0,nfiles)*4*pi*radius**2)*rhoi) / (rhow*ocean_area)
       rcode = nf90_inq_varid(ncid, 'bslc', varid)
       rcode = nf90_put_var(ncid, varid, bslc, start) !todo
 
