@@ -79,6 +79,7 @@ module planets_mod
    real :: acoef, ccoef
    real :: moiA, moiC
    real :: kf
+   real :: ocean_area
    
    contains
    
@@ -88,13 +89,14 @@ module planets_mod
       radius = 6.371E6              ! Radius of the Earth (m)
       mass = 5.976E24               ! Mass of the Earth (kg)
       rhoi = 917.0                  ! Density of ice (kg/m^3)
-      rhow = 1000.0                 ! Density of fresh water (kg/m^3)
+      rhow = 1025.0                 ! Density of fresh water (kg/m^3)
       gacc = 9.80665                ! Acceleration due to gravity at the Earth's surface (m/s^2)
       omega = 7.292e-5              ! Rotation rate of the Earth (rad/s)
       moiA=0.3296145*mass*radius**2 ! Principal moment of inertia of the Earth
       moiC=0.3307007*mass*radius**2 ! Principal moment of inertia of the Earth
       kf = 0.9342+0.008             ! Fluid (Tidal) Love number
-      
+      ocean_area = 3.625e14         ! Ocean area (m^2)
+
    end subroutine earth_init
    
    !==========================================================================================PLANETS_MOD: MARS_INIT===!
@@ -114,6 +116,7 @@ module planets_mod
       ! 1.203959 | 1.127384 | 1.110566 | 1.065899 | 1.023186 | 0.9458358 | 0.8986673
       !----------------------------------------------------------------------------------!
       kf = 0.899                    ! Fluid (Tidal) Love number
+      ocean_area = 0                ! No oceans on mars
       
    end subroutine mars_init
    
@@ -267,7 +270,7 @@ real, dimension(0:norder,0:norder) :: deltaS_real, deltaS_img, Clm_real, Clm_img
 
 real :: conserv                                          ! Uniform geoid shift (ΔΦ/g)
 real :: ttl, ekhl                                        ! Used in Love number calculations
-real :: total_delta_g, ocean_area                        ! Used for GRDMIP outputs
+real :: total_delta_g                                    ! Used for GRDMIP outputs
 complex, dimension(0:norder,0:norder) :: viscous         ! Used in Love number calculations
 real :: xi, zeta                                         ! Convergence checks
 real :: ice_volume, grounded_ice_volume                  ! ice volume, if checkmarine is false, these will be same as model assumes
@@ -295,6 +298,7 @@ character(6) :: numstr, numstr2                             ! String for timeste
 integer :: counti, countf,countrate         ! Computation timing
 real :: counti_cpu, countf_cpu
 type(sphere) :: spheredat                                   ! SH transform data to be passed to subroutines
+real :: bslc                                                ! Barystatic sea level for GRDMIP output
 
 ! For Jerry's code to read in Love numbers
 integer :: legord(norder),nmod(norder),nmodes(norder),ll,nm,np
@@ -872,7 +876,7 @@ if (nmelt==0) then
       rcode = nf90_put_att(ncid, nf90_global, 'title', cruntitle)
 
       do i = nglv,1,-1
-         lat(nglv-i) = i*180./(1.0*nglv) - 90
+         lat(nglv-i+1) = i*180./(1.0*nglv) - 90
       enddo
 
       do i = 1,2*nglv
@@ -1914,8 +1918,8 @@ if (nmelt.GT.0) then
    close(1)
    
    if (iceVolume) then
-	  grounded_ice_volume = icestarlm(0,0)*4*pi*radius**2 !multiply the (0,0) component of ice to the area of a sphere
-	  ice_volume = icelm(0,0)*4*pi*radius**2 !multiply the (0,0) component of ice to the area of a sphere
+	   grounded_ice_volume = icestarlm(0,0)*4*pi*radius**2 !multiply the (0,0) component of ice to the area of a sphere
+	   ice_volume = icelm(0,0)*4*pi*radius**2 !multiply the (0,0) component of ice to the area of a sphere
       open(unit = 1, file = trim(adjustl(outputfolder))//'ice_volume'//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
       & status = 'old', position = 'append')
       write(1,'(ES14.4E2)') grounded_ice_volume
@@ -2008,8 +2012,10 @@ if (nmelt.GT.0) then
          rcode = nf90_put_var(ncid, varid, ice_volume*rhoi, start)
       endif
 
+      bslc = ((deltaicestar(0,0)*4*pi*radius**2)*rhoi) / (rhow*ocean_area)
       rcode = nf90_inq_varid(ncid, 'bslc', varid)
-      rcode = nf90_put_var(ncid, varid, 0, start) !todo
+      rcode = nf90_put_var(ncid, varid, bslc, start) !todo
+
 
       if(calcRG) then
          !grdmip outputs specifically call for mean delta G over ocean
@@ -2021,7 +2027,7 @@ if (nmelt.GT.0) then
          call spat2spec(ggxy(:,:), gglm(:,:), spheredat)
 
         total_delta_g = gglm(0,0)*4*pi*radius**2
-        ocean_area = cstarlm(0,0)*4*pi*radius**2
+        
 
          rcode = nf90_inq_varid(ncid, 'mean_delta_g', varid)
          rcode = nf90_put_var(ncid, varid, total_delta_g/ocean_area, start) !todo
