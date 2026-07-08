@@ -125,7 +125,7 @@ end module planets_mod
 subroutine check_rcode(rcode, line)
    integer, intent(in) :: rcode, line
    if (rcode .ne. 0) then
-      write(*,'(A,I5,A,I6)') 'NETCDF operation failled with error code', rcode, 'on line', line
+      write(*,'(A,I5,A,I6)') 'NETCDF operation failled with error code', rcode, ' on line', line
       stop
    endif
 
@@ -1160,7 +1160,7 @@ if (nmelt==0) then
          call check_rcode(nf90_inq_varid(ncid, 'grd_ice_mass', varid), 1160)
          call check_rcode(nf90_put_var(ncid, varid, (grounded_ice_volume*rhoi), start), 1161)
 
-         call check_rcode(nf90_inq_varid(ncid, 'tot_ice_mass', varid), 1163)
+         call check_rcode(nf90_inq_varid(ncid, 'total_ice_mass', varid), 1163)
          call check_rcode(nf90_put_var(ncid, varid, (ice_volume*rhoi), start), 1164)
       endif
 
@@ -2092,7 +2092,7 @@ if (nmelt.GT.0) then
          call check_rcode(nf90_inq_varid(ncid, 'grd_ice_mass', varid), 2092)
          call check_rcode(nf90_put_var(ncid, varid, grounded_ice_volume*rhoi, start), 2093)
 
-         call check_rcode(nf90_inq_varid(ncid, 'tot_ice_mass', varid), 2095)
+         call check_rcode(nf90_inq_varid(ncid, 'total_ice_mass', varid), 2095)
          call check_rcode(nf90_put_var(ncid, varid, ice_volume*rhoi, start), 2096)
       endif
 
