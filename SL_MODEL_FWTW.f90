@@ -916,11 +916,11 @@ if (nmelt==0) then
       call check_rcode(nf90_put_att(ncid, nf90_global, 'title', cruntitle), 916)
 
       do i = 1,nglv
-         lat(nglv-i+1) = i*180./(1.0*nglv) - 90
+         lat(nglv-i+1) = i*180./(1.0*nglv) - 90. - 90./(1.0*nglv)
       enddo
 
-      do i = 0,2*nglv-1
-         lon(i) = i*360./(2.*nglv)
+      do i = 1,2*nglv
+         lon(i) = (i-1)*360./(2.*nglv)
       enddo
 
       do i = 0,norder
