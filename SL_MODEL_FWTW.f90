@@ -264,7 +264,7 @@ real, dimension(nglv,2*nglv) :: tOxy, rOxy, tTxy         ! Projections used to c
 complex, dimension(0:norder,0:norder) :: cstarlm,oldcstarlm,tOlm,rOlm,dSlm,olddSlm,&
                                          icestarlm,dicestarlm,deltaicestarlm,oldicestarlm,icestar0, &
                                          t0lm,oldt0lm,tTlm,oldtTlm,dsllm,deltasllm,icelm  ! Above, in spectral domain
-complex, dimension(0:norder,0:norder) :: Clm,Slm                      ! GRDMIP outputs
+real, dimension(0:norder,0:norder) :: Clm,Slm                      ! GRDMIP outputs
 real, dimension(0:norder,0:norder) :: deltaS_real, deltaS_img
 
 
