@@ -908,7 +908,7 @@ if (nmelt==0) then
 
     !BP: initalize netcdf database
     if (netcdfOutput) then
-      check_rcode(nf90_create(chist, nf90_clobber, ncid), 914)
+      call check_rcode(nf90_create(chist, nf90_clobber, ncid), 914)
       write(*,*) 'CREATING NEW NETCDF FILE'
 
 
