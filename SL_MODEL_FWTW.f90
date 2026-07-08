@@ -2196,11 +2196,9 @@ if (nmelt.GT.0) then
 
          call check_rcode(nf90_inq_varid(ncid, 'Slm', varid), 2197)
          call check_rcode(nf90_put_var(ncid, varid, Slm(:,:), start, count), 2198)
-
-         call check_rcode(nf90_redef(ncid), 2200)
-         call check_rcode(nf90_close(ncid), 2201)
       endif
-      !CHECK RCODE
+      call check_rcode(nf90_redef(ncid), 2200)
+      call check_rcode(nf90_close(ncid), 2201)
 
 
    endif
