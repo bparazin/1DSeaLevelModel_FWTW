@@ -122,6 +122,17 @@ module planets_mod
    
 end module planets_mod
 
+module netcdf_check
+   subroutine check_rcode(rcode, line)
+      integer, intent(in) rcode, line
+      if (rcode .ne. 0) then
+         write(*,'(A,I5,A,I6)') 'NETCDF operation failled with error code', rcode, 'on line', line
+         stop
+      endif
+
+   end subroutine check_rcode
+end module netcdf_check
+
 !=======================================================================================================================!
 !                                                      MAIN BLOCK                                                       !
 !_______________________________________________________________________________________________________________________!
@@ -132,6 +143,7 @@ program sl_model
 use spharmt
 use planets_mod
 use netcdf
+use netcdf_check
 implicit none
 
 !=======================================================================================================================!
@@ -899,12 +911,8 @@ if (nmelt==0) then
 
     !BP: initalize netcdf database
     if (netcdfOutput) then
-      rcode = nf90_create(chist, nf90_clobber, ncid)
+      check_rcode(nf90_create(chist, nf90_clobber, ncid), 914)
       write(*,*) 'CREATING NEW NETCDF FILE'
-      if (rcode .ne. 0) then
-         write(*,'(A,I5)') 'Creating NETCDF failled with error code', rcode
-         stop
-      endif
 
 
       cruntitle = 'Sea level model run'
