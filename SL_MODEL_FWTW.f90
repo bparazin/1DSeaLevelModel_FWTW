@@ -124,7 +124,8 @@ end module planets_mod
 
 module netcdf_check
    subroutine check_rcode(rcode, line)
-      integer, intent(in) rcode, line
+      implicit none
+      integer, intent(in) :: rcode, line
       if (rcode .ne. 0) then
          write(*,'(A,I5,A,I6)') 'NETCDF operation failled with error code', rcode, 'on line', line
          stop
