@@ -300,7 +300,7 @@ real :: counti_cpu, countf_cpu
 type(sphere) :: spheredat                                   ! SH transform data to be passed to subroutines
 real :: maf, ocean_area_grdice, ocean_area                  ! GRDMIP outputs
 real, dimension(nglv, 2*nglv) :: mafxy                      ! Mass above floatation in each given grid cell
-real, dimension(0:norder, 0:norder) :: maflm                ! Spectral domain of above, used to take area-weighted sum
+complex, dimension(0:norder, 0:norder) :: maflm                ! Spectral domain of above, used to take area-weighted sum
 
 ! For Jerry's code to read in Love numbers
 integer :: legord(norder),nmod(norder),nmodes(norder),ll,nm,np
@@ -311,7 +311,7 @@ real :: taurr,taurt,dmx,dmy
 
 real, dimension(nglv,2*nglv) :: beta0, cxy0, cxy
 real, dimension(nglv, 2*nglv) :: land_ice_area_fraction !beta0 without floating ice check; used for grdmip outputs
-real, dimension(0:norder, 0:norder) :: c_oceanlm, c_oceanstarlm ! Used to calculate grdmip outputs
+complex, dimension(0:norder, 0:norder) :: c_oceanlm, c_oceanstarlm ! Used to calculate grdmip outputs
 real, dimension(nglv,2*nglv) :: topoxy, topoxy_m1, tinit
                                               ! topoxy_m1: topogramy from the previous timestep (m1: minus one)
                                               ! topoxy: topography at the currect timestep
@@ -1917,7 +1917,7 @@ enddo
              mafxy(i,j)=0
           else
             !From Goelzer et al 2020, TC. Equation 1
-             mafxy(i,j)=icestarxy(i,j) + min(0, topoxy(i,j)) * rhosw/rhoi
+             mafxy(i,j)=icestarxy(i,j) + min(0.0, topoxy(i,j)) * rhosw/rhoi
           endif
        enddo
     enddo
@@ -2180,7 +2180,7 @@ if (nmelt.GT.0) then
          count(1) = norder + 1
          start(2) = 1
          count(2) = norder + 1
-         start(3) = iter + 1
+         start(3) = 1
          count(3) = 1
 
          do i = 0, norder
@@ -2190,10 +2190,10 @@ if (nmelt.GT.0) then
             enddo
          enddo
          rcode = nf90_inq_varid(ncid, 'Clm', varid)
-         rcode = nf90_put_var(ncid, varid, Clm(:,:), start)
+         rcode = nf90_put_var(ncid, varid, Clm(:,:), start, count)
 
          rcode = nf90_inq_varid(ncid, 'Slm', varid)
-         rcode = nf90_put_var(ncid, varid, Slm(:,:), start)
+         rcode = nf90_put_var(ncid, varid, Slm(:,:), start, count)
 
          rcode = nf90_redef(ncid)
          rcode = nf90_close(ncid)
