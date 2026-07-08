@@ -982,7 +982,7 @@ if (nmelt==0) then
       if(iceVolume) then
          !ice volume
          cvar = 'ice_vol'
-         cvarl = 'ice volume'
+         cvarl = 'grounded ice volume'
          cunits = 'm3'
          call check_rcode(nf90_def_var(ncid, cvar, nf90_float, timid, varid), 987)
          call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 988)
@@ -1155,7 +1155,7 @@ if (nmelt==0) then
 
       if(iceVolume) then
          call check_rcode(nf90_inq_varid(ncid, 'ice_vol', varid), 1157)
-         call check_rcode(nf90_put_var(ncid, varid, ice_volume, start), 1158)
+         call check_rcode(nf90_put_var(ncid, varid, grounded_ice_volume, start), 1158)
 
          call check_rcode(nf90_inq_varid(ncid, 'grd_ice_mass', varid), 1160)
          call check_rcode(nf90_put_var(ncid, varid, (grounded_ice_volume*rhoi), start), 1161)
