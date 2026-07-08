@@ -913,7 +913,7 @@ if (nmelt==0) then
 
 
       cruntitle = 'Sea level model run'
-      rcode = nf90_put_att(ncid, nf90_global, 'title', cruntitle)
+      call check_rcode(nf90_put_att(ncid, nf90_global, 'title', cruntitle), 916)
 
       do i = 1,nglv
          lat(nglv-i+1) = i*180./(1.0*nglv) - 90
@@ -931,49 +931,49 @@ if (nmelt==0) then
          order_list(i) = i
       enddo
 
-      rcode = nf90_def_dim(ncid, 'lon', nglv*2, xid)
-      rcode = nf90_def_var(ncid, 'lon', NF90_DOUBLE, xid, varid)
-      rcode = nf90_put_att(ncid, varid, 'long_name', 'longitude')
-      rcode = nf90_put_att(ncid, varid, 'units', 'degrees_east')
-      rcode = nf90_put_att(ncid, varid, 'FORTRAN_format', 'f8.3')
-      rcode = nf90_enddef(ncid)
-      rcode = nf90_put_var(ncid, varid, lon(:)) !put lon data into netcdf
-      rcode = nf90_redef(ncid)
+      call check_rcode(nf90_def_dim(ncid, 'lon', nglv*2, xid), 934)
+      call check_rcode(nf90_def_var(ncid, 'lon', NF90_DOUBLE, xid, varid), 935)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', 'longitude'), 936)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', 'degrees_east'), 937)
+      call check_rcode(nf90_put_att(ncid, varid, 'FORTRAN_format', 'f8.3'), 938)
+      call check_rcode(nf90_enddef(ncid), 939)
+      call check_rcode(nf90_put_var(ncid, varid, lon(:)), 940) !put lon data into netcdf
+      call check_rcode(nf90_redef(ncid), 941)
 
-      rcode = nf90_def_dim(ncid, 'lat', nglv, yid)
-      rcode = nf90_def_var(ncid, 'lat', NF90_DOUBLE, yid, varid)
-      rcode = nf90_put_att(ncid, varid, 'long_name', 'Latitude')
-      rcode = nf90_put_att(ncid, varid, 'units', 'degrees_north')
-      rcode = nf90_put_att(ncid, varid, 'FORTRAN_format', 'f8.3')
-      rcode = nf90_enddef(ncid)
-      rcode = nf90_put_var(ncid, varid, lat(:)) !put lat data into netcdf
-      rcode = nf90_redef(ncid)
+      call check_rcode(nf90_def_dim(ncid, 'lat', nglv, yid), 943)
+      call check_rcode(nf90_def_var(ncid, 'lat', NF90_DOUBLE, yid, varid), 944)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', 'Latitude'), 945)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', 'degrees_north'), 946)
+      call check_rcode(nf90_put_att(ncid, varid, 'FORTRAN_format', 'f8.3'), 947)
+      call check_rcode(nf90_enddef(ncid), 948)
+      call check_rcode(nf90_put_var(ncid, varid, lat(:)), 949) !put lat data into netcdf
+      call check_rcode(nf90_redef(ncid), 950)
 
       !add degree and order dimensions
-      rcode = nf90_def_dim(ncid, 'degree', norder + 1, degid)
-      rcode = nf90_def_var(ncid, 'degree', nf90_int, degid, varid)
-      rcode = nf90_put_att(ncid, varid, 'long_name', 'Degree')
-      rcode = nf90_put_att(ncid, varid, 'units', '1')
-      rcode = nf90_put_att(ncid, varid, 'FORTRAN_format', 'I4')
-      rcode = nf90_enddef(ncid)
-      rcode = nf90_put_var(ncid, varid, degree_list(:)) !put degree into netcdf
-      rcode = nf90_redef(ncid)
+      call check_rcode(nf90_def_dim(ncid, 'degree', norder + 1, degid), 953)
+      call check_rcode(nf90_def_var(ncid, 'degree', nf90_int, degid, varid), 954)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', 'Degree'), 955)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', '1'), 956)
+      call check_rcode(nf90_put_att(ncid, varid, 'FORTRAN_format', 'I4'), 957)
+      call check_rcode(nf90_enddef(ncid), 958)
+      call check_rcode(nf90_put_var(ncid, varid, degree_list(:)), 959) !put degree into netcdf
+      call check_rcode(nf90_redef(ncid), 960)
 
-      rcode = nf90_def_dim(ncid, 'order', norder + 1, ordid)
-      rcode = nf90_def_var(ncid, 'order', nf90_int, ordid, varid)
-      rcode = nf90_put_att(ncid, varid, 'long_name', 'Order')
-      rcode = nf90_put_att(ncid, varid, 'units', '1')
-      rcode = nf90_put_att(ncid, varid, 'FORTRAN_format', 'I4')
-      rcode = nf90_enddef(ncid)
-      rcode = nf90_put_var(ncid, varid, order_list(:)) !put order into netcdf
-      rcode = nf90_redef(ncid)
+      call check_rcode(nf90_def_dim(ncid, 'order', norder + 1, ordid), 962)
+      call check_rcode(nf90_def_var(ncid, 'order', nf90_int, ordid, varid), 963)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', 'Order'), 964)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', '1'), 965)
+      call check_rcode(nf90_put_att(ncid, varid, 'FORTRAN_format', 'I4'), 966)
+      call check_rcode(nf90_enddef(ncid), 967)
+      call check_rcode(nf90_put_var(ncid, varid, order_list(:)), 968) !put order into netcdf
+      call check_rcode(nf90_redef(ncid), 969)
 
       !add time dimension
-      rcode = nf90_def_dim(ncid, 'time', nf90_unlimited, timid)
-      rcode = nf90_def_var(ncid, 'time', NF90_DOUBLE, timid, varid)
-      rcode = nf90_put_att(ncid, varid, 'long_name', 'Calendar year corresponding to each output time (positive = CE, negative = BCE)')
-      rcode = nf90_put_att(ncid, varid, 'units', 'year')
-      rcode = nf90_put_att(ncid, varid, 'FORTRAN_format', 'f12.3')
+      call check_rcode(nf90_def_dim(ncid, 'time', nf90_unlimited, timid), 972)
+      call check_rcode(nf90_def_var(ncid, 'time', NF90_DOUBLE, timid, varid), 973)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', 'Calendar year corresponding to each output time (positive = CE, negative = BCE)'), 974)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', 'year'), 975)
+      call check_rcode(nf90_put_att(ncid, varid, 'FORTRAN_format', 'f12.3'), 976)
 
       !Variable dimensions and attrs
 
@@ -984,61 +984,61 @@ if (nmelt==0) then
          cvar = 'ice_vol'
          cvarl = 'ice volume'
          cunits = 'm3'
-         rcode = nf90_def_var(ncid, cvar, nf90_float, timid, varid)
-         rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
-         rcode = nf90_put_att(ncid, varid, 'units', cunits)
-         rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f20.3')      
+         call check_rcode(nf90_def_var(ncid, cvar, nf90_float, timid, varid), 987)
+         call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 988)
+         call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 989)
+         call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f20.3'), 990)      
       !additional new grdmip outputs
          !grounded ice mass
          cvar = 'grd_ice_mass'
          cvarl = 'Spatial integration of grounded ice volume times ice density'
          cunits = 'kg'
-         rcode = nf90_def_var(ncid, cvar, NF90_DOUBLE, timid, varid)
-         rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
-         rcode = nf90_put_att(ncid, varid, 'units', cunits)
-         rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f20.3')    
+         call check_rcode(nf90_def_var(ncid, cvar, NF90_DOUBLE, timid, varid), 996)
+         call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 997)
+         call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 998)
+         call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f20.3'), 999)    
          !total ice mass
          cvar = 'total_ice_mass'
          cvarl = 'Spatial integration, total (grounded and floating) ice volume times ice density'
          cunits = 'kg'
-         rcode = nf90_def_var(ncid, cvar, NF90_DOUBLE, timid, varid)
-         rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
-         rcode = nf90_put_att(ncid, varid, 'units', cunits)
-         rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f20.3')    
+         call check_rcode(nf90_def_var(ncid, cvar, NF90_DOUBLE, timid, varid), 1004)
+         call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1005)
+         call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1006)
+         call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f20.3'), 1007)
       endif
       !mass above floatation
       cvar = 'maf'
       cvarl = 'Land ice mass above flotation that would contribute to global mean sea-level change if converted to water and added to the ocean'
       cunits = 'kg'
-      rcode = nf90_def_var(ncid, cvar, NF90_DOUBLE, timid, varid)
-      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
-      rcode = nf90_put_att(ncid, varid, 'units', cunits)
-      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.2')    
+      call check_rcode(nf90_def_var(ncid, cvar, NF90_DOUBLE, timid, varid), 1013)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1014)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1015)
+      call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f6.2'), 1016)    
       !total ocean area including marine regions covered in grounded ice
       cvar = 'ocean_area_grdice'
       cvarl = 'Total ocean area including marine regions covered by grounded ice'
       cunits = 'm2'
-      rcode = nf90_def_var(ncid, cvar, NF90_DOUBLE, timid, varid)
-      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
-      rcode = nf90_put_att(ncid, varid, 'units', cunits)
-      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.2')    
+      call check_rcode(nf90_def_var(ncid, cvar, NF90_DOUBLE, timid, varid), 1021)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1022)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1023)
+      call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f6.2'), 1024)
       !total ocean area excluding marine regions covered in grounded ice
       cvar = 'ocean_area'
       cvarl = 'Total ocean area excluding marine regions covered by grounded ice'
       cunits = 'm2'
-      rcode = nf90_def_var(ncid, cvar, NF90_DOUBLE, timid, varid)
-      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
-      rcode = nf90_put_att(ncid, varid, 'units', cunits)
-      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.2')    
+      call check_rcode(nf90_def_var(ncid, cvar, NF90_DOUBLE, timid, varid), 1029)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1030)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1031)
+      call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f6.2'), 1032)
       !mean delta g
       if(calcRG) then
          cvar = 'mean_delta_g'
          cvarl = 'Spatial mean of geoid height change (delta_g) over the ocean area'
          cunits = 'm'
-         rcode = nf90_def_var(ncid, cvar, NF90_DOUBLE, timid, varid)
-         rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
-         rcode = nf90_put_att(ncid, varid, 'units', cunits)
-         rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.2')
+         call check_rcode(nf90_def_var(ncid, cvar, NF90_DOUBLE, timid, varid), 1038)
+         call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1039)
+         call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1040)
+         call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f6.2'), 1041)
       endif
 
       !3D variables (lat, lon, time)
@@ -1047,59 +1047,59 @@ if (nmelt==0) then
       cvar = 'beta'
       cvarl = 'Grounded ice mask'
       cunits = 'none'
-      rcode = nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid)
-      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
-      rcode = nf90_put_att(ncid, varid, 'units', cunits)
-      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','I1')
+      call check_rcode(nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid), 1050)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1051)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1052)
+      call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','I1'), 1053)
       !ocean
       cvar = 'Ocean'
       cvarl = 'Ocean mask'
       cunits = 'none'
-      rcode = nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid)
-      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
-      rcode = nf90_put_att(ncid, varid, 'units', cunits)
-      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','I1')
+      call check_rcode(nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid), 1058)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1059)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1060)
+      call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','I1'), 1061)
       !Ocean area fraction
       cvar = 'ocean_area_fraction'
       cvarl = 'Fraction of horizontal grid-cell area covered by ocean'
       cunits = '1'
-      rcode = nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid)
-      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
-      rcode = nf90_put_att(ncid, varid, 'units', cunits)
-      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f5.2')
+      call check_rcode(nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid), 1066)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1067)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1068)
+      call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f5.2'), 1069)
       !Ice area fraction
       cvar = 'land_ice_area_fraction'
       cvarl = 'Fraction of horizontal grid-cell area covered by grounded and floating land ice'
       cunits = '1'
-      rcode = nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid)
-      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
-      rcode = nf90_put_att(ncid, varid, 'units', cunits)
-      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f5.2')
+      call check_rcode(nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid), 1074)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1075)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1076)
+      call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f5.2'), 1077)
       !tgrid
       cvar = 'tgrid'
       cvarl = 'Topography'
       cunits = 'm'
-      rcode = nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid)
-      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
-      rcode = nf90_put_att(ncid, varid, 'units', cunits)
-      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f7.2')
+      call check_rcode(nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid), 1082)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1083)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1084)
+      call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f7.2'), 1085)
       if(calcRG) then
          !delta R
          cvar = 'delta_r'
          cvarl = 'Change in the bedrock elevation relative to the initial simulation time step'
          cunits = 'm'
-         rcode = nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid)
-         rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
-         rcode = nf90_put_att(ncid, varid, 'units', cunits)
-         rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f7.2')
+         call check_rcode(nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid), 1091)
+         call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1092)
+         call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1093)
+         call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f7.2'), 1094)
          !delta G
          cvar = 'delta_g'
          cvarl = 'Change in the geoid height relative to the initial simulation time step'
          cunits = 'm'
-         rcode = nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid)
-         rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
-         rcode = nf90_put_att(ncid, varid, 'units', cunits)
-         rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f7.2')
+         call check_rcode(nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid), 1099)
+         call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1100)
+         call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1101)
+         call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f7.2'), 1102)
       endif
 
 
@@ -1109,73 +1109,73 @@ if (nmelt==0) then
       cvar = 'dS_converged_real'
       cvarl = 'Sea surface height in spectral coordinates (real component)'
       cunits = 'unitless'
-      rcode = nf90_def_var(ncid, cvar, nf90_float, (/degid, ordid, timid/), varid)
-      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
-      rcode = nf90_put_att(ncid, varid, 'units', cunits)
-      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.3')
+      call check_rcode(nf90_def_var(ncid, cvar, nf90_float, (/degid, ordid, timid/), varid), 1112)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1113)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1114)
+      call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f6.3'), 1115)
 
       cvar = 'dS_converged_img'
       cvarl = 'Sea surface height in spectral coordinates (imaginary component)'
       cunits = 'unitless'
-      rcode = nf90_def_var(ncid, cvar, nf90_float, (/degid, ordid, timid/), varid)
-      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
-      rcode = nf90_put_att(ncid, varid, 'units', cunits)
-      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.3')
+      call check_rcode(nf90_def_var(ncid, cvar, nf90_float, (/degid, ordid, timid/), varid), 1120)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1121)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1122)
+      call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f6.3'), 1123)
       
    !additional new grdmip outputs
       !Clm
       cvar = 'Clm'
       cvarl = 'Cosine spherical harmonic coefficients (C_lm) of geoid height change (delta_g) between the first and final simulation timesteps'
       cunits = '1'
-      rcode = nf90_def_var(ncid, cvar, nf90_float, (/degid, ordid/), varid)
-      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
-      rcode = nf90_put_att(ncid, varid, 'units', cunits)
-      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.3')
+      call check_rcode(nf90_def_var(ncid, cvar, nf90_float, (/degid, ordid/), varid), 1130)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1131)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1132)
+      call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f6.3'), 1133)
 
       !Slm
       cvar = 'Slm'
       cvarl = 'Sine spherical harmonic coefficients (S_lm) of geoid height change (delta_g) between the first and final simulation timesteps'
       cunits = '1'
-      rcode = nf90_def_var(ncid, cvar, nf90_float, (/degid, ordid/), varid)
-      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
-      rcode = nf90_put_att(ncid, varid, 'units', cunits)
-      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.3')
+      call check_rcode(nf90_def_var(ncid, cvar, nf90_float, (/degid, ordid/), varid), 1139)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1140)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1141)
+      call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f6.3'), 1142)
 
       !Leave define mode
-      rcode = nf90_enddef(ncid)
+      call check_rcode(nf90_enddef(ncid), 1145)
 
       !1D fields
       start(1) = iter + 1
 
       !add start time to time dimension
-      rcode = nf90_inq_varid(ncid, 'time', varid)
-      rcode = nf90_put_var(ncid, varid, starttime, start) 
+      call check_rcode(nf90_inq_varid(ncid, 'time', varid), 1151)
+      call check_rcode(nf90_put_var(ncid, varid, starttime, start), 1152)
 
       !write fields
 
       if(iceVolume) then
-         rcode = nf90_inq_varid(ncid, 'ice_vol', varid)
-         rcode = nf90_put_var(ncid, varid, ice_volume, start)
+         call check_rcode(nf90_inq_varid(ncid, 'ice_vol', varid), 1157)
+         call check_rcode(nf90_put_var(ncid, varid, ice_volume, start), 1158)
 
-         rcode = nf90_inq_varid(ncid, 'grd_ice_mass', varid)
-         rcode = nf90_put_var(ncid, varid, (grounded_ice_volume*rhoi), start)
+         call check_rcode(nf90_inq_varid(ncid, 'grd_ice_mass', varid), 1160)
+         call check_rcode(nf90_put_var(ncid, varid, (grounded_ice_volume*rhoi), start), 1161)
 
-         rcode = nf90_inq_varid(ncid, 'tot_ice_mass', varid)
-         rcode = nf90_put_var(ncid, varid, (ice_volume*rhoi), start)
+         call check_rcode(nf90_inq_varid(ncid, 'tot_ice_mass', varid), 1163)
+         call check_rcode(nf90_put_var(ncid, varid, (ice_volume*rhoi), start), 1164)
       endif
 
-      rcode = nf90_inq_varid(ncid, 'maf', varid)
-      rcode = nf90_put_var(ncid, varid, maf, start)
+      call check_rcode(nf90_inq_varid(ncid, 'maf', varid), 1167)
+      call check_rcode(nf90_put_var(ncid, varid, maf, start), 1168)
 
-      rcode = nf90_inq_varid(ncid, 'ocean_area_grdice', varid)
-      rcode = nf90_put_var(ncid, varid, ocean_area_grdice, start)
+      call check_rcode(nf90_inq_varid(ncid, 'ocean_area_grdice', varid), 1170)
+      call check_rcode(nf90_put_var(ncid, varid, ocean_area_grdice, start), 1171)
 
-      rcode = nf90_inq_varid(ncid, 'ocean_area', varid)
-      rcode = nf90_put_var(ncid, varid, ocean_area, start)
+      call check_rcode(nf90_inq_varid(ncid, 'ocean_area', varid), 1173)
+      call check_rcode(nf90_put_var(ncid, varid, ocean_area, start), 1174)
 
       if(calcRG) then
-         rcode = nf90_inq_varid(ncid, 'mean_delta_g', varid)
-         rcode = nf90_put_var(ncid, varid, 0, start) !no change in delta g at initial time step
+         call check_rcode(nf90_inq_varid(ncid, 'mean_delta_g', varid), 1177)
+         call check_rcode(nf90_put_var(ncid, varid, 0, start), 1178) !no change in delta g at initial time step
       endif
 
       !3D fields
@@ -1187,31 +1187,31 @@ if (nmelt==0) then
       start(3) = iter + 1
       count(3) = 1
 
-      rcode = nf90_inq_varid(ncid, 'beta', varid)
-      rcode = nf90_put_var(ncid, varid, beta0, start, count)
+      call check_rcode(nf90_inq_varid(ncid, 'beta', varid), 1190)
+      call check_rcode(nf90_put_var(ncid, varid, beta0, start, count), 1191)
 
-      rcode = nf90_inq_varid(ncid, 'land_ice_area_fraction', varid)
-      rcode = nf90_put_var(ncid, varid, land_ice_area_fraction, start, count)
+      call check_rcode(nf90_inq_varid(ncid, 'land_ice_area_fraction', varid), 1193)
+      call check_rcode(nf90_put_var(ncid, varid, land_ice_area_fraction, start, count), 1194)
 
-      rcode = nf90_inq_varid(ncid, 'Ocean', varid)
-      rcode = nf90_put_var(ncid, varid, cxy0, start, count)
+      call check_rcode(nf90_inq_varid(ncid, 'Ocean', varid), 1196)
+      call check_rcode(nf90_put_var(ncid, varid, cxy0, start, count), 1197)
 
-      rcode = nf90_inq_varid(ncid, 'ocean_area_fraction', varid)
-      rcode = nf90_put_var(ncid, varid, cxy0, start, count)
+      call check_rcode(nf90_inq_varid(ncid, 'ocean_area_fraction', varid), 1199)
+      call check_rcode(nf90_put_var(ncid, varid, cxy0, start, count), 1200)
 
-      rcode = nf90_inq_varid(ncid, 'tgrid', varid)
-      rcode = nf90_put_var(ncid, varid, tinit_0, start, count)
+      call check_rcode(nf90_inq_varid(ncid, 'tgrid', varid), 1202)
+      call check_rcode(nf90_put_var(ncid, varid, tinit_0, start, count), 1203)
 
 
 
       if(calcRG) then
          rr(:,:,1) = 0
          gg(:,:,1) = 0 !no change in r or g at first timestep
-         rcode = nf90_inq_varid(ncid, 'delta_r', varid)
-         rcode = nf90_put_var(ncid, varid, rr(:,:,1), start, count)
+         call check_rcode(nf90_inq_varid(ncid, 'delta_r', varid), 1210)
+         call check_rcode(nf90_put_var(ncid, varid, rr(:,:,1), start, count), 1211)
 
-         rcode = nf90_inq_varid(ncid, 'delta_g', varid)
-         rcode = nf90_put_var(ncid, varid, gg(:,:,1), start, count)
+         call check_rcode(nf90_inq_varid(ncid, 'delta_g', varid), 1213)
+         call check_rcode(nf90_put_var(ncid, varid, gg(:,:,1), start, count), 1214)
       endif
 
       !degree, order, time
@@ -1229,14 +1229,14 @@ if (nmelt==0) then
          enddo
       enddo
 
-      rcode = nf90_inq_varid(ncid, 'dS_converged_real', varid)
-      rcode = nf90_put_var(ncid, varid, deltaS_real(:,:), start)
+      call check_rcode(nf90_inq_varid(ncid, 'dS_converged_real', varid), 1232)
+      call check_rcode(nf90_put_var(ncid, varid, deltaS_real(:,:), start), 1233)
 
-      rcode = nf90_inq_varid(ncid, 'dS_converged_img', varid)
-      rcode = nf90_put_var(ncid, varid, deltaS_img(:,:), start)
+      call check_rcode(nf90_inq_varid(ncid, 'dS_converged_img', varid), 1235)
+      call check_rcode(nf90_put_var(ncid, varid, deltaS_img(:,:), start), 1236)
 
-      rcode = nf90_redef(ncid)
-      rcode = nf90_close(ncid)
+      call check_rcode(nf90_redef(ncid), 1238)
+      call check_rcode(nf90_close(ncid), 1239)
 
     endif
 
@@ -2074,33 +2074,30 @@ if (nmelt.GT.0) then
    endif !endif coupling
 
    if (netcdfOutput) then
-      rcode = nf90_open(chist, nf90_write, ncid)
+      call check_rcode(nf90_open(chist, nf90_write, ncid), 2077)
       write(*,*) 'Writing output to NETCDF file'
-      if (rcode .ne. 0) then
-         write(8, '(A,I6)') 'Opening NETCDF failed with error code', rcode
-      endif
 
       !write fields
       !1D fields
       start(1) = iter + 1
 
       !add current time to time dimension
-      rcode = nf90_inq_varid(ncid, 'time', varid)
-      rcode = nf90_put_var(ncid, varid, starttime + dtime*iter, start) 
+      call check_rcode(nf90_inq_varid(ncid, 'time', varid), 2085)
+      call check_rcode(nf90_put_var(ncid, varid, starttime + dtime*iter, start), 2086)
 
       if(iceVolume) then
-         rcode = nf90_inq_varid(ncid, 'ice_vol', varid)
-         rcode = nf90_put_var(ncid, varid, grounded_ice_volume, start)
+         call check_rcode(nf90_inq_varid(ncid, 'ice_vol', varid), 2089)
+         call check_rcode(nf90_put_var(ncid, varid, grounded_ice_volume, start), 2090)
 
-         rcode = nf90_inq_varid(ncid, 'grd_ice_mass', varid)
-         rcode = nf90_put_var(ncid, varid, grounded_ice_volume*rhoi, start)
+         call check_rcode(nf90_inq_varid(ncid, 'grd_ice_mass', varid), 2092)
+         call check_rcode(nf90_put_var(ncid, varid, grounded_ice_volume*rhoi, start), 2093)
 
-         rcode = nf90_inq_varid(ncid, 'tot_ice_mass', varid)
-         rcode = nf90_put_var(ncid, varid, ice_volume*rhoi, start)
+         call check_rcode(nf90_inq_varid(ncid, 'tot_ice_mass', varid), 2095)
+         call check_rcode(nf90_put_var(ncid, varid, ice_volume*rhoi, start), 2096)
       endif
 
-      rcode = nf90_inq_varid(ncid, 'maf', varid)
-      rcode = nf90_put_var(ncid, varid, maf, start)
+      call check_rcode(nf90_inq_varid(ncid, 'maf', varid), 2099)
+      call check_rcode(nf90_put_var(ncid, varid, maf, start), 2100)
 
 
       if(calcRG) then
@@ -2115,16 +2112,16 @@ if (nmelt.GT.0) then
         total_delta_g = gglm(0,0)*4*pi*radius**2
         
 
-         rcode = nf90_inq_varid(ncid, 'mean_delta_g', varid)
-         rcode = nf90_put_var(ncid, varid, total_delta_g/ocean_area, start)
+         call check_rcode(nf90_inq_varid(ncid, 'mean_delta_g', varid), 2115)
+         call check_rcode(nf90_put_var(ncid, varid, total_delta_g/ocean_area, start), 2116)
 
       endif
 
-      rcode = nf90_inq_varid(ncid, 'ocean_area_grdice', varid)
-      rcode = nf90_put_var(ncid, varid, ocean_area_grdice, start)
+      call check_rcode(nf90_inq_varid(ncid, 'ocean_area_grdice', varid), 2120)
+      call check_rcode(nf90_put_var(ncid, varid, ocean_area_grdice, start), 2121)
 
-      rcode = nf90_inq_varid(ncid, 'ocean_area', varid)
-      rcode = nf90_put_var(ncid, varid, ocean_area, start) 
+      call check_rcode(nf90_inq_varid(ncid, 'ocean_area', varid), 2123)
+      call check_rcode(nf90_put_var(ncid, varid, ocean_area, start), 2124)
 
       !3D fields
       !y,x,time
@@ -2135,27 +2132,27 @@ if (nmelt.GT.0) then
       start(3) = iter + 1
       count(3) = 1
 
-      rcode = nf90_inq_varid(ncid, 'beta', varid)
-      rcode = nf90_put_var(ncid, varid, beta(:,:), start, count)
+      call check_rcode(nf90_inq_varid(ncid, 'beta', varid), 2135)
+      call check_rcode(nf90_put_var(ncid, varid, beta(:,:), start, count), 2136)
 
-      rcode = nf90_inq_varid(ncid, 'ocean_area_fraction', varid)
-      rcode = nf90_put_var(ncid, varid, cxy, start, count)
+      call check_rcode(nf90_inq_varid(ncid, 'ocean_area_fraction', varid), 2138)
+      call check_rcode(nf90_put_var(ncid, varid, cxy, start, count), 2139)
 
-      rcode = nf90_inq_varid(ncid, 'land_ice_area_fraction', varid)
-      rcode = nf90_put_var(ncid, varid, land_ice_area_fraction, start, count)
+      call check_rcode(nf90_inq_varid(ncid, 'land_ice_area_fraction', varid), 2141)
+      call check_rcode(nf90_put_var(ncid, varid, land_ice_area_fraction, start, count), 2142)
 
-      rcode = nf90_inq_varid(ncid, 'Ocean', varid)
-      rcode = nf90_put_var(ncid, varid, cxy, start, count)
+      call check_rcode(nf90_inq_varid(ncid, 'Ocean', varid), 2144)
+      call check_rcode(nf90_put_var(ncid, varid, cxy, start, count), 2145)
 
-      rcode = nf90_inq_varid(ncid, 'tgrid', varid)
-      rcode = nf90_put_var(ncid, varid, topoxy, start, count)
+      call check_rcode(nf90_inq_varid(ncid, 'tgrid', varid), 2147)
+      call check_rcode(nf90_put_var(ncid, varid, topoxy, start, count), 2148)
 
       if(calcRG) then
-         rcode = nf90_inq_varid(ncid, 'delta_r', varid)
-         rcode = nf90_put_var(ncid, varid, rr(:,:,nfiles), start, count)
+         call check_rcode(nf90_inq_varid(ncid, 'delta_r', varid), 2151)
+         call check_rcode(nf90_put_var(ncid, varid, rr(:,:,nfiles), start, count), 2152)
 
-         rcode = nf90_inq_varid(ncid, 'delta_g', varid)
-         rcode = nf90_put_var(ncid, varid, gg(:,:,nfiles), start, count)
+         call check_rcode(nf90_inq_varid(ncid, 'delta_g', varid), 2154)
+         call check_rcode(nf90_put_var(ncid, varid, gg(:,:,nfiles), start, count), 2155)
       endif
 
       !degree, order, time
@@ -2173,11 +2170,11 @@ if (nmelt.GT.0) then
          enddo
       enddo
 
-      rcode = nf90_inq_varid(ncid, 'dS_converged_real', varid)
-      rcode = nf90_put_var(ncid, varid, deltaS_real(:,:), start)
+      call check_rcode(nf90_inq_varid(ncid, 'dS_converged_real', varid), 2173)
+      call check_rcode(nf90_put_var(ncid, varid, deltaS_real(:,:), start), 2174)
 
-      rcode = nf90_inq_varid(ncid, 'dS_converged_img', varid)
-      rcode = nf90_put_var(ncid, varid, deltaS_img(:,:), start)
+      call check_rcode(nf90_inq_varid(ncid, 'dS_converged_img', varid), 2176)
+      call check_rcode(nf90_put_var(ncid, varid, deltaS_img(:,:), start), 2177)
 
       current_time = iter * dt1     !time passed since the start of the simulation  
       if (current_time == L_sim) then !if we are at the last time step of simulation
@@ -2194,14 +2191,14 @@ if (nmelt.GT.0) then
                Slm(i,j) = aimag(gglm(i,j))
             enddo
          enddo
-         rcode = nf90_inq_varid(ncid, 'Clm', varid)
-         rcode = nf90_put_var(ncid, varid, Clm(:,:), start, count)
+         call check_rcode(nf90_inq_varid(ncid, 'Clm', varid), 2194)
+         call check_rcode(nf90_put_var(ncid, varid, Clm(:,:), start, count), 2195)
 
-         rcode = nf90_inq_varid(ncid, 'Slm', varid)
-         rcode = nf90_put_var(ncid, varid, Slm(:,:), start, count)
+         call check_rcode(nf90_inq_varid(ncid, 'Slm', varid), 2197)
+         call check_rcode(nf90_put_var(ncid, varid, Slm(:,:), start, count), 2198)
 
-         rcode = nf90_redef(ncid)
-         rcode = nf90_close(ncid)
+         call check_rcode(nf90_redef(ncid), 2200)
+         call check_rcode(nf90_close(ncid), 2201)
       endif
       !CHECK RCODE
 
