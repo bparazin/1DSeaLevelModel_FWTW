@@ -74,12 +74,12 @@ module planets_mod
    real :: mass
    real :: rhoi
    real :: rhow
+   real :: rhosw
    real :: gacc
    real :: omega 
    real :: acoef, ccoef
    real :: moiA, moiC
    real :: kf
-   real :: ocean_area
    
    contains
    
@@ -89,13 +89,13 @@ module planets_mod
       radius = 6.371E6              ! Radius of the Earth (m)
       mass = 5.976E24               ! Mass of the Earth (kg)
       rhoi = 917.0                  ! Density of ice (kg/m^3)
-      rhow = 1025.0                 ! Density of fresh water (kg/m^3)
+      rhow = 1000.0                 ! Density of fresh water (kg/m^3)
+      rhosw = 1025.0                ! Density of sea water (kg/m^3)
       gacc = 9.80665                ! Acceleration due to gravity at the Earth's surface (m/s^2)
       omega = 7.292e-5              ! Rotation rate of the Earth (rad/s)
       moiA=0.3296145*mass*radius**2 ! Principal moment of inertia of the Earth
       moiC=0.3307007*mass*radius**2 ! Principal moment of inertia of the Earth
       kf = 0.9342+0.008             ! Fluid (Tidal) Love number
-      ocean_area = 3.625e14         ! Ocean area (m^2)
 
    end subroutine earth_init
    
@@ -106,6 +106,7 @@ module planets_mod
       mass = 6.4185E23              ! Mass of Mars (kg)
       rhoi = 1220.0                 ! Density of ice mix on Mars (kg/m^3)
       rhow = 1000.0                 ! Density of fresh water (kg/m^3)
+      rhosw = 1025.0                ! Density of sea water (kg/m^3)
       gacc = 3.713                  ! Acceleration due to gravity at Mars's surface (m/s^2)
       omega = 7.08819118E-5         ! Rotation rate of Mars (rad/s)
       moiA=0.363914*mass*radius**2  ! Principal moments of inertia of Mars
@@ -116,7 +117,6 @@ module planets_mod
       ! 1.203959 | 1.127384 | 1.110566 | 1.065899 | 1.023186 | 0.9458358 | 0.8986673
       !----------------------------------------------------------------------------------!
       kf = 0.899                    ! Fluid (Tidal) Love number
-      ocean_area = 0                ! No oceans on mars
       
    end subroutine mars_init
    
@@ -265,7 +265,7 @@ complex, dimension(0:norder,0:norder) :: cstarlm,oldcstarlm,tOlm,rOlm,dSlm,olddS
                                          icestarlm,dicestarlm,deltaicestarlm,oldicestarlm,icestar0, &
                                          t0lm,oldt0lm,tTlm,oldtTlm,dsllm,deltasllm,icelm  ! Above, in spectral domain
 complex, dimension(0:norder,0:norder) :: Clm,Slm                      ! GRDMIP outputs
-real, dimension(0:norder,0:norder) :: deltaS_real, deltaS_img, Clm_real, Clm_img, Slm_real, Slm_img
+real, dimension(0:norder,0:norder) :: deltaS_real, deltaS_img
 
 
 real :: conserv                                          ! Uniform geoid shift (ΔΦ/g)
@@ -298,7 +298,9 @@ character(6) :: numstr, numstr2                             ! String for timeste
 integer :: counti, countf,countrate         ! Computation timing
 real :: counti_cpu, countf_cpu
 type(sphere) :: spheredat                                   ! SH transform data to be passed to subroutines
-real :: bslc                                                ! Barystatic sea level for GRDMIP output
+real :: maf, ocean_area_grdice, ocean_area                  ! GRDMIP outputs
+real, dimension(nglv, 2*nglv) :: mafxy                      ! Mass above floatation in each given grid cell
+real, dimension(0:norder, 0:norder) :: maflm                ! Spectral domain of above, used to take area-weighted sum
 
 ! For Jerry's code to read in Love numbers
 integer :: legord(norder),nmod(norder),nmodes(norder),ll,nm,np
@@ -308,6 +310,8 @@ real, dimension(npam,norder) :: resh,resl,resk,tresh,tresl,tresk
 real :: taurr,taurt,dmx,dmy
 
 real, dimension(nglv,2*nglv) :: beta0, cxy0, cxy
+real, dimension(nglv, 2*nglv) :: land_ice_area_fraction !beta0 without floating ice check; used for grdmip outputs
+real, dimension(0:norder, 0:norder) :: c_oceanlm, c_oceanstarlm ! Used to calculate grdmip outputs
 real, dimension(nglv,2*nglv) :: topoxy, topoxy_m1, tinit
                                               ! topoxy_m1: topogramy from the previous timestep (m1: minus one)
                                               ! topoxy: topography at the currect timestep
@@ -326,7 +330,7 @@ integer :: ival4, jval4, len
 integer :: xid, yid, timid, ordid, degid
 integer, dimension(4) :: idim, start, count
 character(24) :: cvar, cunits
-character(80) :: cruntitle, cvarl
+character(200) :: cruntitle, cvarl
 character(*), parameter :: chist = 'SL_model.nc'
 integer, dimension(0:norder) :: order_list, degree_list
 real, dimension(nglv) :: lat
@@ -725,6 +729,9 @@ if (nmelt==0) then
           endif
        enddo
     enddo
+
+    call spat2spec(cxy0(:,:),c_oceanlm(:,:),spheredat)
+    ocean_area_grdice = c_oceanlm(0,0)*4*pi*radius**2
     
     !  write out the initial ocean function as a file
     open(unit = 1, file = trim(adjustl(outputfolder))//'ocean'//trim(numstr)//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
@@ -756,16 +763,44 @@ if (nmelt==0) then
    endif
 
     ! calculate initial beta
+      do j = 1,2*nglv
+         do i = 1,nglv
+            if (icestarxy(i,j) < epsilon(0.0)) then 
+               beta0(i,j)=1
+            else
+               beta0(i,j)=0
+            endif
+         enddo
+      enddo
+
+    ! calculate land_ice_area_fraction
     do j = 1,2*nglv
        do i = 1,nglv
-          if (icestarxy(i,j) < epsilon(0.0)) then 
-             beta0(i,j)=1
+          if (icexy(i,j,1) < epsilon(0.0)) then 
+             land_ice_area_fraction(i,j)=0
           else
-             beta0(i,j)=0
+             land_ice_area_fraction(i,j)=1
           endif
        enddo
     enddo
+
+    ! calculate initial mass above floatation
+    do j = 1,2*nglv
+       do i = 1,nglv
+          if (icestarxy(i,j) < epsilon(0.0)) then 
+             mafxy(i,j)=0
+          else
+            !From Goelzer et al 2020, TC. Equation 1
+             mafxy(i,j)=icestarxy(i,j) + min(0, tinit_0(i,j)) * rhosw/rhoi
+          endif
+       enddo
+    enddo
+    call spat2spec(mafxy(:,:),maflm(:,:),spheredat)
+    maf = maflm(0,0)*4*pi*radius**2
     
+    call spat2spec(cxy0(:,:)*beta0(:,:),c_oceanstarlm(:,:),spheredat)
+    ocean_area = c_oceanstarlm(0,0)*4*pi*radius**2
+
     !  write out the initial beta function as a file
     open(unit = 1, file = trim(adjustl(outputfolder))//'beta'//trim(numstr)//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
     & status = 'replace')
@@ -840,8 +875,8 @@ if (nmelt==0) then
             else ! If not checking for floating ice
                icestarxy(:,:) = icexy(:,:,1)
             endif
-            call spat2spec(icestarxy(:,:),icestarlm(:,:),spheredat)
-            call spat2spec(icexy(:,:,1), icelm(:,:), spheredat)
+         call spat2spec(icestarxy(:,:),icestarlm(:,:),spheredat)
+         call spat2spec(icexy(:,:,1), icelm(:,:), spheredat)
 
         grounded_ice_volume = icestarlm(0,0)*4*pi*radius**2
         ice_volume = icelm(0,0)*4*pi*radius**2
@@ -875,11 +910,11 @@ if (nmelt==0) then
       cruntitle = 'Sea level model run'
       rcode = nf90_put_att(ncid, nf90_global, 'title', cruntitle)
 
-      do i = nglv,1,-1
+      do i = 1,nglv
          lat(nglv-i+1) = i*180./(1.0*nglv) - 90
       enddo
 
-      do i = 1,2*nglv
+      do i = 0,2*nglv-1
          lon(i) = i*360./(2.*nglv)
       enddo
 
@@ -892,7 +927,8 @@ if (nmelt==0) then
       enddo
 
       rcode = nf90_def_dim(ncid, 'lon', nglv*2, xid)
-      rcode = nf90_def_var(ncid, 'lon', nf90_float, xid, varid)
+      rcode = nf90_def_var(ncid, 'lon', NF90_DOUBLE, xid, varid)
+      rcode = nf90_put_att(ncid, varid, 'long_name', 'longitude')
       rcode = nf90_put_att(ncid, varid, 'units', 'degrees_east')
       rcode = nf90_put_att(ncid, varid, 'FORTRAN_format', 'f8.3')
       rcode = nf90_enddef(ncid)
@@ -900,7 +936,8 @@ if (nmelt==0) then
       rcode = nf90_redef(ncid)
 
       rcode = nf90_def_dim(ncid, 'lat', nglv, yid)
-      rcode = nf90_def_var(ncid, 'lat', nf90_float, yid, varid)
+      rcode = nf90_def_var(ncid, 'lat', NF90_DOUBLE, yid, varid)
+      rcode = nf90_put_att(ncid, varid, 'long_name', 'Latitude')
       rcode = nf90_put_att(ncid, varid, 'units', 'degrees_north')
       rcode = nf90_put_att(ncid, varid, 'FORTRAN_format', 'f8.3')
       rcode = nf90_enddef(ncid)
@@ -910,7 +947,8 @@ if (nmelt==0) then
       !add degree and order dimensions
       rcode = nf90_def_dim(ncid, 'degree', norder + 1, degid)
       rcode = nf90_def_var(ncid, 'degree', nf90_int, degid, varid)
-      rcode = nf90_put_att(ncid, varid, 'units', 'unitless')
+      rcode = nf90_put_att(ncid, varid, 'long_name', 'Degree')
+      rcode = nf90_put_att(ncid, varid, 'units', '1')
       rcode = nf90_put_att(ncid, varid, 'FORTRAN_format', 'I4')
       rcode = nf90_enddef(ncid)
       rcode = nf90_put_var(ncid, varid, degree_list(:)) !put degree into netcdf
@@ -918,7 +956,8 @@ if (nmelt==0) then
 
       rcode = nf90_def_dim(ncid, 'order', norder + 1, ordid)
       rcode = nf90_def_var(ncid, 'order', nf90_int, ordid, varid)
-      rcode = nf90_put_att(ncid, varid, 'units', 'unitless')
+      rcode = nf90_put_att(ncid, varid, 'long_name', 'Order')
+      rcode = nf90_put_att(ncid, varid, 'units', '1')
       rcode = nf90_put_att(ncid, varid, 'FORTRAN_format', 'I4')
       rcode = nf90_enddef(ncid)
       rcode = nf90_put_var(ncid, varid, order_list(:)) !put order into netcdf
@@ -926,9 +965,9 @@ if (nmelt==0) then
 
       !add time dimension
       rcode = nf90_def_dim(ncid, 'time', nf90_unlimited, timid)
-      rcode = nf90_def_var(ncid, 'time', nf90_float, timid, varid)
-      rcode = nf90_put_att(ncid, varid, 'long_name', 'year')
-      rcode = nf90_put_att(ncid, varid, 'units', 'years')
+      rcode = nf90_def_var(ncid, 'time', NF90_DOUBLE, timid, varid)
+      rcode = nf90_put_att(ncid, varid, 'long_name', 'Calendar year corresponding to each output time (positive = CE, negative = BCE)')
+      rcode = nf90_put_att(ncid, varid, 'units', 'year')
       rcode = nf90_put_att(ncid, varid, 'FORTRAN_format', 'f12.3')
 
       !Variable dimensions and attrs
@@ -947,35 +986,51 @@ if (nmelt==0) then
       !additional new grdmip outputs
          !grounded ice mass
          cvar = 'grd_ice_mass'
-         cvarl = 'grounded ice mass'
+         cvarl = 'Spatial integration of grounded ice volume times ice density'
          cunits = 'kg'
-         rcode = nf90_def_var(ncid, cvar, nf90_float, timid, varid)
+         rcode = nf90_def_var(ncid, cvar, NF90_DOUBLE, timid, varid)
          rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
          rcode = nf90_put_att(ncid, varid, 'units', cunits)
          rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f20.3')    
          !total ice mass
-         cvar = 'tot_ice_mass'
-         cvarl = 'total ice mass'
+         cvar = 'total_ice_mass'
+         cvarl = 'Spatial integration, total (grounded and floating) ice volume times ice density'
          cunits = 'kg'
-         rcode = nf90_def_var(ncid, cvar, nf90_float, timid, varid)
+         rcode = nf90_def_var(ncid, cvar, NF90_DOUBLE, timid, varid)
          rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
          rcode = nf90_put_att(ncid, varid, 'units', cunits)
          rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f20.3')    
       endif
-      !barystatic sea level change
-      cvar = 'bslc'
-      cvarl = 'barystatic sea level change'
-      cunits = 'm'
-      rcode = nf90_def_var(ncid, cvar, nf90_float, timid, varid)
+      !mass above floatation
+      cvar = 'maf'
+      cvarl = 'Land ice mass above flotation that would contribute to global mean sea-level change if converted to water and added to the ocean'
+      cunits = 'kg'
+      rcode = nf90_def_var(ncid, cvar, NF90_DOUBLE, timid, varid)
+      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
+      rcode = nf90_put_att(ncid, varid, 'units', cunits)
+      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.2')    
+      !total ocean area including marine regions covered in grounded ice
+      cvar = 'ocean_area_grdice'
+      cvarl = 'Total ocean area including marine regions covered by grounded ice'
+      cunits = 'm2'
+      rcode = nf90_def_var(ncid, cvar, NF90_DOUBLE, timid, varid)
+      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
+      rcode = nf90_put_att(ncid, varid, 'units', cunits)
+      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.2')    
+      !total ocean area excluding marine regions covered in grounded ice
+      cvar = 'ocean_area'
+      cvarl = 'Total ocean area excluding marine regions covered by grounded ice'
+      cunits = 'm2'
+      rcode = nf90_def_var(ncid, cvar, NF90_DOUBLE, timid, varid)
       rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
       rcode = nf90_put_att(ncid, varid, 'units', cunits)
       rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.2')    
       !mean delta g
       if(calcRG) then
          cvar = 'mean_delta_g'
-         cvarl = 'Ocean area mean of changes in geoid'
+         cvarl = 'Spatial mean of geoid height change (delta_g) over the ocean area'
          cunits = 'm'
-         rcode = nf90_def_var(ncid, cvar, nf90_float, timid, varid)
+         rcode = nf90_def_var(ncid, cvar, NF90_DOUBLE, timid, varid)
          rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
          rcode = nf90_put_att(ncid, varid, 'units', cunits)
          rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.2')
@@ -999,6 +1054,22 @@ if (nmelt==0) then
       rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
       rcode = nf90_put_att(ncid, varid, 'units', cunits)
       rcode = nf90_put_att(ncid,varid,'FORTRAN_format','I1')
+      !Ocean area fraction
+      cvar = 'ocean_area_fraction'
+      cvarl = 'Fraction of horizontal grid-cell area covered by ocean'
+      cunits = '1'
+      rcode = nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid)
+      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
+      rcode = nf90_put_att(ncid, varid, 'units', cunits)
+      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f5.2')
+      !Ice area fraction
+      cvar = 'land_ice_area_fraction'
+      cvarl = 'Fraction of horizontal grid-cell area covered by grounded and floating land ice'
+      cunits = '1'
+      rcode = nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid)
+      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
+      rcode = nf90_put_att(ncid, varid, 'units', cunits)
+      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f5.2')
       !tgrid
       cvar = 'tgrid'
       cvarl = 'Topography'
@@ -1010,7 +1081,7 @@ if (nmelt==0) then
       if(calcRG) then
          !delta R
          cvar = 'delta_r'
-         cvarl = 'changes in bedrock height'
+         cvarl = 'Change in the bedrock elevation relative to the initial simulation time step'
          cunits = 'm'
          rcode = nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid)
          rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
@@ -1018,31 +1089,13 @@ if (nmelt==0) then
          rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f7.2')
          !delta G
          cvar = 'delta_g'
-         cvarl = 'Changes in geopotential height'
-         cunits = 'm'
-         rcode = nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid)
-         rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
-         rcode = nf90_put_att(ncid, varid, 'units', cunits)
-         rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f7.2')
-
-         !Bed (R)
-         cvar = 'bed'
-         cvarl = 'bed/seafloor'
+         cvarl = 'Change in the geoid height relative to the initial simulation time step'
          cunits = 'm'
          rcode = nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid)
          rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
          rcode = nf90_put_att(ncid, varid, 'units', cunits)
          rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f7.2')
       endif
-
-      !delta rsl
-      cvar = 'delta_rsl'
-      cvarl = 'changes in local ocean depth'
-      cunits = 'm'
-      rcode = nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid)
-      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
-      rcode = nf90_put_att(ncid, varid, 'units', cunits)
-      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f7.2')
 
 
       !3D variables (degree, order, time)
@@ -1065,22 +1118,23 @@ if (nmelt==0) then
       rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.3')
       
    !additional new grdmip outputs
-      ! !Clm
-      ! cvar = 'Clm'
-      ! cvarl = 'C_lm Stokes coefficients of changes in the gravity field wrt the initial simulation time'
-      ! cunits = 'unitless'
-      ! rcode = nf90_def_var(ncid, cvar, nf90_float, (/degid, ordid, timid/), varid)
-      ! rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
-      ! rcode = nf90_put_att(ncid, varid, 'units', cunits)
-      ! rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.3')
-      ! !Slm
-      ! cvar = 'Slm'
-      ! cvarl = 'S_lm Stokes coefficients of changes in the gravity field wrt the initial simulation time'
-      ! cunits = 'unitless'
-      ! rcode = nf90_def_var(ncid, cvar, nf90_float, (/degid, ordid, timid/), varid)
-      ! rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
-      ! rcode = nf90_put_att(ncid, varid, 'units', cunits)
-      ! rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.3')
+      !Clm
+      cvar = 'Clm'
+      cvarl = 'Cosine spherical harmonic coefficients (C_lm) of geoid height change (delta_g) between the first and final simulation timesteps'
+      cunits = '1'
+      rcode = nf90_def_var(ncid, cvar, nf90_float, (/degid, ordid/), varid)
+      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
+      rcode = nf90_put_att(ncid, varid, 'units', cunits)
+      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.3')
+
+      !Slm
+      cvar = 'Slm'
+      cvarl = 'Sine spherical harmonic coefficients (S_lm) of geoid height change (delta_g) between the first and final simulation timesteps'
+      cunits = '1'
+      rcode = nf90_def_var(ncid, cvar, nf90_float, (/degid, ordid/), varid)
+      rcode = nf90_put_att(ncid, varid, 'long_name', cvarl)
+      rcode = nf90_put_att(ncid, varid, 'units', cunits)
+      rcode = nf90_put_att(ncid,varid,'FORTRAN_format','f6.3')
 
       !Leave define mode
       rcode = nf90_enddef(ncid)
@@ -1105,8 +1159,14 @@ if (nmelt==0) then
          rcode = nf90_put_var(ncid, varid, (ice_volume*rhoi), start)
       endif
 
-      rcode = nf90_inq_varid(ncid, 'bslc', varid)
-      rcode = nf90_put_var(ncid, varid, 0, start) !no change in barystatic sea level at initial time step
+      rcode = nf90_inq_varid(ncid, 'maf', varid)
+      rcode = nf90_put_var(ncid, varid, maf, start)
+
+      rcode = nf90_inq_varid(ncid, 'ocean_area_grdice', varid)
+      rcode = nf90_put_var(ncid, varid, ocean_area_grdice, start)
+
+      rcode = nf90_inq_varid(ncid, 'ocean_area', varid)
+      rcode = nf90_put_var(ncid, varid, ocean_area, start)
 
       if(calcRG) then
          rcode = nf90_inq_varid(ncid, 'mean_delta_g', varid)
@@ -1125,11 +1185,19 @@ if (nmelt==0) then
       rcode = nf90_inq_varid(ncid, 'beta', varid)
       rcode = nf90_put_var(ncid, varid, beta0, start, count)
 
+      rcode = nf90_inq_varid(ncid, 'land_ice_area_fraction', varid)
+      rcode = nf90_put_var(ncid, varid, land_ice_area_fraction, start, count)
+
       rcode = nf90_inq_varid(ncid, 'Ocean', varid)
+      rcode = nf90_put_var(ncid, varid, cxy0, start, count)
+
+      rcode = nf90_inq_varid(ncid, 'ocean_area_fraction', varid)
       rcode = nf90_put_var(ncid, varid, cxy0, start, count)
 
       rcode = nf90_inq_varid(ncid, 'tgrid', varid)
       rcode = nf90_put_var(ncid, varid, tinit_0, start, count)
+
+
 
       if(calcRG) then
          rr(:,:,1) = 0
@@ -1139,17 +1207,7 @@ if (nmelt==0) then
 
          rcode = nf90_inq_varid(ncid, 'delta_g', varid)
          rcode = nf90_put_var(ncid, varid, gg(:,:,1), start, count)
-
-         rcode = nf90_inq_varid(ncid, 'bed', varid)
-         rcode = nf90_put_var(ncid, varid, tinit_0, start, count) !at time t=0, reference ellipsoid is G, so bed is sea level
-                                                                     !at all future timesteps, it is instead tinit_0+delta_r
       endif
-
-      
-
-      deltaslxy = 0 !no change in sea level at first timestep too
-      rcode = nf90_inq_varid(ncid, 'delta_rsl', varid)
-      rcode = nf90_put_var(ncid, varid, deltaslxy, start, count)
 
       !degree, order, time
       start(1) = 1
@@ -1171,14 +1229,6 @@ if (nmelt==0) then
 
       rcode = nf90_inq_varid(ncid, 'dS_converged_img', varid)
       rcode = nf90_put_var(ncid, varid, deltaS_img(:,:), start)
-
-      ! Clm = 0
-      ! Slm = 0 !both Clm and Slm are with respect to the original time so initalize at zero
-      ! rcode = nf90_inq_varid(ncid, 'Clm', varid)
-      ! rcode = nf90_put_var(ncid, varid, Clm, start)
-
-      ! rcode = nf90_inq_varid(ncid, 'Slm', varid)
-      ! rcode = nf90_put_var(ncid, varid, Slm, start)
 
       rcode = nf90_redef(ncid)
       rcode = nf90_close(ncid)
@@ -1860,6 +1910,38 @@ do j = 1,2*nglv
    enddo
 enddo
 
+! calculate mass above floatation for timestep
+    do j = 1,2*nglv
+       do i = 1,nglv
+          if (icestarxy(i,j) < epsilon(0.0)) then 
+             mafxy(i,j)=0
+          else
+            !From Goelzer et al 2020, TC. Equation 1
+             mafxy(i,j)=icestarxy(i,j) + min(0, topoxy(i,j)) * rhosw/rhoi
+          endif
+       enddo
+    enddo
+    call spat2spec(mafxy(:,:),maflm(:,:),spheredat)
+    maf = maflm(0,0)*4*pi*radius**2
+
+!Calculate ocean area with and without considering grounded ice
+call spat2spec(cxy(:,:),c_oceanlm(:,:),spheredat)
+ocean_area_grdice = c_oceanlm(0,0)*4*pi*radius**2
+
+call spat2spec(cxy(:,:)*beta(:,:),c_oceanstarlm(:,:),spheredat)
+ocean_area = c_oceanstarlm(0,0)*4*pi*radius**2
+
+!Calculate ice area fraction for this timestep
+do j = 1,2*nglv
+       do i = 1,nglv
+          if (icexy(i,j,n) < epsilon(0.0)) then 
+             land_ice_area_fraction(i,j)=0
+          else
+             land_ice_area_fraction(i,j)=1
+          endif
+       enddo
+    enddo
+
 !=========================================================================================
 !                          OUTPUT                           
 !_________________________________________________________________________________________
@@ -2003,7 +2085,7 @@ if (nmelt.GT.0) then
 
       if(iceVolume) then
          rcode = nf90_inq_varid(ncid, 'ice_vol', varid)
-         rcode = nf90_put_var(ncid, varid, ice_volume, start)
+         rcode = nf90_put_var(ncid, varid, grounded_ice_volume, start)
 
          rcode = nf90_inq_varid(ncid, 'grd_ice_mass', varid)
          rcode = nf90_put_var(ncid, varid, grounded_ice_volume*rhoi, start)
@@ -2012,9 +2094,8 @@ if (nmelt.GT.0) then
          rcode = nf90_put_var(ncid, varid, ice_volume*rhoi, start)
       endif
 
-      bslc = -((deltaicestar(0,0,nfiles)*4*pi*radius**2)*rhoi) / (rhow*ocean_area)
-      rcode = nf90_inq_varid(ncid, 'bslc', varid)
-      rcode = nf90_put_var(ncid, varid, bslc, start) !todo
+      rcode = nf90_inq_varid(ncid, 'maf', varid)
+      rcode = nf90_put_var(ncid, varid, maf, start)
 
 
       if(calcRG) then
@@ -2030,9 +2111,15 @@ if (nmelt.GT.0) then
         
 
          rcode = nf90_inq_varid(ncid, 'mean_delta_g', varid)
-         rcode = nf90_put_var(ncid, varid, total_delta_g/ocean_area, start) !todo
+         rcode = nf90_put_var(ncid, varid, total_delta_g/ocean_area, start)
 
       endif
+
+      rcode = nf90_inq_varid(ncid, 'ocean_area_grdice', varid)
+      rcode = nf90_put_var(ncid, varid, ocean_area_grdice, start)
+
+      rcode = nf90_inq_varid(ncid, 'ocean_area', varid)
+      rcode = nf90_put_var(ncid, varid, ocean_area, start) 
 
       !3D fields
       !y,x,time
@@ -2046,6 +2133,12 @@ if (nmelt.GT.0) then
       rcode = nf90_inq_varid(ncid, 'beta', varid)
       rcode = nf90_put_var(ncid, varid, beta(:,:), start, count)
 
+      rcode = nf90_inq_varid(ncid, 'ocean_area_fraction', varid)
+      rcode = nf90_put_var(ncid, varid, cxy, start, count)
+
+      rcode = nf90_inq_varid(ncid, 'land_ice_area_fraction', varid)
+      rcode = nf90_put_var(ncid, varid, land_ice_area_fraction, start, count)
+
       rcode = nf90_inq_varid(ncid, 'Ocean', varid)
       rcode = nf90_put_var(ncid, varid, cxy, start, count)
 
@@ -2058,21 +2151,14 @@ if (nmelt.GT.0) then
 
          rcode = nf90_inq_varid(ncid, 'delta_g', varid)
          rcode = nf90_put_var(ncid, varid, gg(:,:,nfiles), start, count)
-
-         rcode = nf90_inq_varid(ncid, 'bed', varid)
-         rcode = nf90_put_var(ncid, varid, tinit_0 + rr(:,:,nfiles), start, count) !reference ellipsoid is G at t=0, so bed
-                                                                                 ! is tinit_0+delta_r
       endif
-
-      rcode = nf90_inq_varid(ncid, 'delta_rsl', varid)
-      rcode = nf90_put_var(ncid, varid, deltaslxy, start, count)
 
       !degree, order, time
       start(1) = 1
       count(1) = norder + 1
       start(2) = 1
       count(2) = norder + 1
-      start(3) = iter + 1
+      start(3) = 1
       count(3) = 1
 
       do i = 0, norder
@@ -2088,16 +2174,30 @@ if (nmelt.GT.0) then
       rcode = nf90_inq_varid(ncid, 'dS_converged_img', varid)
       rcode = nf90_put_var(ncid, varid, deltaS_img(:,:), start)
 
-      ! Clm = 0
-      ! Slm = 0 !both Clm and Slm are with respect to the original time so initalize at zero
-      ! rcode = nf90_inq_varid(ncid, 'Clm', varid)
-      ! rcode = nf90_put_var(ncid, varid, Clm, start) !todo
+      current_time = iter * dt1     !time passed since the start of the simulation  
+      if (current_time == L_sim) then !if we are at the last time step of simulation
+         start(1) = 1
+         count(1) = norder + 1
+         start(2) = 1
+         count(2) = norder + 1
+         start(3) = iter + 1
+         count(3) = 1
 
-      ! rcode = nf90_inq_varid(ncid, 'Slm', varid)
-      ! rcode = nf90_put_var(ncid, varid, Slm, start) !todo
+         do i = no, norder
+            do j = 0, norder
+               Clm(i,j) = real(gglm(i,j))
+               Slm(i,j) = aimag(gglm(i,j))
+            enddo
+         enddo
+         rcode = nf90_inq_varid(ncid, 'Clm', varid)
+         rcode = nf90_put_var(ncid, varid, Clm, start)
 
-      rcode = nf90_redef(ncid)
-      rcode = nf90_close(ncid)
+         rcode = nf90_inq_varid(ncid, 'Slm', varid)
+         rcode = nf90_put_var(ncid, varid, Slm, start)
+
+         rcode = nf90_redef(ncid)
+         rcode = nf90_close(ncid)
+      endif
       !CHECK RCODE
 
 
