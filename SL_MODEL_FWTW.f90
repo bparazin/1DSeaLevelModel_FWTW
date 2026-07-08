@@ -791,7 +791,7 @@ if (nmelt==0) then
              mafxy(i,j)=0
           else
             !From Goelzer et al 2020, TC. Equation 1
-             mafxy(i,j)=icestarxy(i,j) + min(0, tinit_0(i,j)) * rhosw/rhoi
+             mafxy(i,j)=icestarxy(i,j) + min(0.0, tinit_0(i,j)) * rhosw/rhoi
           endif
        enddo
     enddo
@@ -2183,17 +2183,17 @@ if (nmelt.GT.0) then
          start(3) = iter + 1
          count(3) = 1
 
-         do i = no, norder
+         do i = 0, norder
             do j = 0, norder
                Clm(i,j) = real(gglm(i,j))
                Slm(i,j) = aimag(gglm(i,j))
             enddo
          enddo
          rcode = nf90_inq_varid(ncid, 'Clm', varid)
-         rcode = nf90_put_var(ncid, varid, Clm, start)
+         rcode = nf90_put_var(ncid, varid, Clm(:,:), start)
 
          rcode = nf90_inq_varid(ncid, 'Slm', varid)
-         rcode = nf90_put_var(ncid, varid, Slm, start)
+         rcode = nf90_put_var(ncid, varid, Slm(:,:), start)
 
          rcode = nf90_redef(ncid)
          rcode = nf90_close(ncid)
