@@ -9,9 +9,9 @@
 # 4) put initial topography file in run directory and call it tgrid.0
 # set itersl = 1
  set ncalls = 
- set outerloopiter = 
+ set outerloopiter = 1
  set dtime = 
- set starttime=
+ set starttime= -122000
 
  @ itersl = 1
  while ($itersl <= $outerloopiter)
