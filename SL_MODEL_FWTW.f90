@@ -168,6 +168,7 @@ character(60) :: icemodel_out
 character(60) :: timearray
 character(60) :: topomodel
 character(60) :: topo_initial
+character(60) :: topo_goal
 character(60) :: ism_iceload
 character(60) :: ism_bedrock
 !=======================================================================================================================|
@@ -257,7 +258,8 @@ real, dimension(nglv,2*nglv) :: init_topo_corr  ! correction applied to compute 
 character(6) :: iterstr                         ! String for timestep number for reading/writing files                  |
 !=======================================================================================================================|
 ! Inputs
-real, dimension(nglv,2*nglv) :: truetopo        ! Present-day topography
+real, dimension(nglv,2*nglv) :: truetopo        ! Unknown initial topo
+real, dimension(nglv,2*nglv) :: topogoal        ! Present-day topography
 real, dimension(npam,norder) :: rprime,r,s      ! Love numbers
 real, dimension(norder) :: ke,he                ! Love numbers
 real, dimension(npam,norder) :: rprimeT,rT      ! Love numbers (tidal)
@@ -354,7 +356,7 @@ namelist /io_directory/ inputfolder_ice, inputfolder, &
                         folder_coupled
 namelist /file_format/ ext, fType
 namelist   /file_name/ planetmodel, icemodel, icemodel_out, &
-                     timearray, topomodel, topo_initial
+                     timearray, topomodel, topo_initial, topo_goal
                      
 namelist /shared/ ism_iceload, ism_bedrock
 namelist /model_config/ checkmarine, tpw, calcRG, &
@@ -658,6 +660,12 @@ if (nmelt==0) then
            write(iterstr,'(I2)') itersl-1
            iterstr = trim(adjustl(iterstr))
         
+         if (final_goal) then
+            open(unit = 1, file = trim(adjustl(inputfolder))//trim(adjustl(topo_goal))//trim(adjustl(ext)), form = 'formatted', access = 'sequential', status = 'old')
+            read(1,*) topogoal
+            close(1)
+         endif
+
          open(unit = 1, file = trim(adjustl(outputfolder))//'pred_pres_topo_'//trim(iterstr)//trim(adjustl(ext)), form = 'formatted', &
            & access = 'sequential', status = 'old')
          read(1,*) pred_pres_topo
@@ -670,7 +678,11 @@ if (nmelt==0) then
          close(1)
         
           ! compute topography correction for the initial topography 
+         if (final_goal) then
+          init_topo_corr(:,:) = topogoal(:,:) - pred_pres_topo(:,:)
+         else
           init_topo_corr(:,:) = truetopo(:,:) - pred_pres_topo(:,:)
+         endif
           tinit_0(:,:) = tinit_0_last(:,:) + init_topo_corr(:,:)
      endif
     endif

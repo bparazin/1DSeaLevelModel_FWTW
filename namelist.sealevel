@@ -29,8 +29,11 @@
     icemodel      = 'iceload5g' ! Common name of ice files in 'inputfolder_ice'
     icemodel_out  = 'iceload_out_' ! Name of ice files in 'outputfolder_ice'
     timearray     = 'times' ! Name of times array text file
-    topomodel     = 'etopo2_512_AISbedmap2'  ! Bedrock topography (NO ICE INCLUDED!!) at time = 0ka
-    topo_initial  = 'etopo2_512_AISbedmap2'
+    topomodel     = 'etopo2_512_AISbedmap2'  ! Bedrock topography (NO ICE INCLUDED!!) at time = 0ka for unknown initial topo
+    topo_initial  = 'etopo2_512_AISbedmap2'  ! Bedrock topography (NO ICE INCLUDED!!) at time = 0ka for known initial topo
+    topo_goal     = 'etopo2_512_AISbedmap2'  ! Goal final bedrock topograpy (NO ICE INCLUDED!!) at final time for unknown initial topo
+/
+&shared
     ism_iceload   = 'NH_iceload' !Name of files output by SLM of iceload and bedrock, not used if coupling is false
     ism_bedrock   = 'NH_bedrock'
 /
@@ -44,7 +47,8 @@
     iceVolume = .true. ! .true. to output ice volume at each time step
     coupling = .false. ! .true. if the SLM is coupled to the ISM    
     patch_ice = .false. ! .true. patch ice data with zeros .false. merge the icemodel files with ice grids provided by the ISM
-    netcdfOutput = .true. !.true. to outbut a netcdf of results
+    netcdfOutput = .true. !.true. to output a netcdf of results
+    final_goal = .true. !.true. modifies behavour of initial_topo = .false. so initial topo is no longer modern topography
 /
 
    !Time Window parameters=======================================================================================!
