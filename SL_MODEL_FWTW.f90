@@ -812,7 +812,7 @@ if (nmelt==0) then
              mafxy(i,j)=0
           else
             !From Goelzer et al 2020, TC. Equation 1
-             mafxy(i,j)=icestarxy(i,j) + min(0.0, tinit_0(i,j)) * rhosw/rhoi
+             mafxy(i,j)= (icestarxy(i,j) + min(0.0, tinit_0(i,j)) * rhosw/rhoi) * rhoi
           endif
        enddo
     enddo
