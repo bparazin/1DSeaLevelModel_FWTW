@@ -1,5 +1,6 @@
 ! SL_MODEL_FWTW.90  - Holly Kyeore Han (PhD Student, McGill University 2015-2021, Advisor: by Natalya Gomez),
-! Sea Level Model with ForWard and TimeWindow algorithm (FWTW). LAST UPDATE: April 1st, 2021 by Holly Han 
+! Further modification made by B. Parazin (PhD Student, McGill University 2023-Present, Advisor: by Natalya Gomez)
+! Sea Level Model with ForWard and TimeWindow algorithm (FWTW). LAST UPDATE: Feb 11th, 2025 by B. "I put the tran in FORTRAN" Parazin
 
 ! The is a FORWARD sea-level model with the timewindow algorithm. The code is modified from SL_TPW.f90, a new, 
 ! benchmarked ice-age sea-level model written by Sam Goldberg, Harvard University EPS '16 (Advised by Jerry Mitrovica) 
@@ -56,102 +57,6 @@
 
 include 'spharmt.f90' ! Spherical harmonic transform module
 
-!================================================================================================USER SPECIFICATIONS===!
-module user_specs_mod
-!______________________________________________________________________________________________________________________!
-  
-   ! Directories=======================================================================================================!
-   ! 'inputfolder_ice' stores ice history files (if coupled, this folder provides iceloads outside the ice model domain)
-   ! 'inputfolder' stores files such as modern observed topography, times array, known initial topography
-   ! 'planetfolder': Planetary model directory, input forder for the Earth structure (i.e. PREM files)
-   !  The filename of the desired model (i.e., the Love numbers) given by the planetmodel variable below. This is now 
-   !  incorporated into the planets_mod module below, since automation limits the freedom in naming, which could be 
-   !  complex and highly customized.
-   ! 'outputfolder' stores output files from the sea level model (e.g. SL#, tgrid#, beta#, ocean#, dS_converged#, TPW)
-   ! 'outputfolder_ice' stores global ice cover files, combining the prescribed ice cover outside the ice domain, 
-   !  and the ice cover predicted by the dynamic model. This folder is used only when the SLM is coupled to an ice model.
-   ! 'folder_coupled' stores files that are exchanged between the ice (NHiceload) and sea level (bedrock) models. It is
-   !  not used if the sea-level model (SLM) is not coupled to an ice sheet model (ISM)
-
-   ! Input directory
-   character(*), parameter :: inputfolder_ice  = 'INPUT_NHIS2GC/'
-   character(*), parameter :: inputfolder  = '/project/ctb-ng50/Han/INPUT_FILES/TOPOFILES/'
-   character(*), parameter :: planetfolder = '/project/ctb-ng50/Han/INPUT_FILES/PREMFILES/'   
-   
-   ! Output directory
-   character(*), parameter :: outputfolder = 'OUTPUT_SLM/' 
-   character(*), parameter :: outputfolder_ice = 'ICELOAD_SLM/'
-
-   ! Other directory
-   character(*), parameter :: folder_coupled = '' 
-  
-   
-   ! Various selection ================================================================================================!
-   character(4), parameter :: ext = ''    ! '.txt' | ''   ! Common file extension
-   character(*), parameter :: whichplanet   = 'earth'                  ! e.g. 'earth', 'Mars', etc.
-   character(*), parameter :: planetmodel   = 'prem_coll_512.l120C.ump5.lm5' ! For now, this is generated from maxwell.f by JXM
-   character(*), parameter :: icemodel      = 'iceload'             ! Common name of ice files in 'inputfolder_ice'
-   character(*), parameter :: icemodel_out  = 'iceload'          ! Name of ice files in 'outputfolder_ice'
-   character(*), parameter :: timearray     = 'times'                  ! Name of times array text file
-   character(*), parameter :: topomodel     = 'etopo2_512_ice6gC '       ! Bedrock topography (NO ICE INCLUDED!!) at time = 0ka       
-   character(*), parameter :: topo_initial  = 'etopo2_512_ice6gC' 
-   
-   ! Model parameters==================================================================================================!
-   integer, parameter :: norder = 512           ! Max spherical harmonic degree/order
-   integer, parameter :: npam = 500             ! Max relaxation modes
-   integer, parameter :: nglv = 512             ! Number of GL points in latitude
-   real, parameter :: epsilon1 = 1.0E-5         ! Inner loop convergence criterion
-   real, parameter :: epsilon2 = 1.0E-5         ! Outer loop convergence criterion 
-                                                !  (if doing a convergence check for outer loop, see below)
-
-   ! CHECK TRUE OR FALSE ==============================================================================================!
-   logical, parameter :: checkmarine = .false.  ! .true. to check for floating marine-based ice
-                                                ! .false. to assume all ice is grounded
-   logical, parameter :: tpw = .true.           ! .true. to incorporate rotational feedback								                                                                                   ! .false. for non-rotating planet												
-   logical, parameter :: calcRG = .false.       ! .true. to calculate the radial and geoid displacements; note that  
-                                                !    the "true" option only works for a fixed number of outer loops 
-                                                !    (i.e., no convergence checks!).
-                                                ! .false. to only calculate RSL. 
-   logical, parameter :: input_times = .false.  ! .true. if time array is provided from an existing text file                                                                                              ! .false. if timearray is calculated within the main code                              
-   logical, parameter :: initial_topo = .true. ! .true. initial topo is known
-                                                ! .false. the code assumes initial topography is equal to modern 
-                                                !      topography file "truetopo"
-   logical, parameter :: iceVolume = .true.     ! .true. to output ice volume at each time step
-   logical, parameter :: coupling = .false.      ! .true. if the SLM is coupled to the ISM
-                                                ! .false. if not coupled                                 
-   logical, parameter :: patch_ice = .false.    ! .true. patch ice data with zeros
-                                                ! .false. merge the icemodel files with ice grids provided by the ISM
-                                                !. patch_ice is only activated when 'coupling' is .true.
-                                
-   !Time Window parameters=======================================================================================!
-
-   !                      |--------- total length of a time window------------|
-   
-   !  schematic diagram   |--------dt4--------|------dt3------|---dt2---|-dt1-|
-   !  of a timewindow          past                                        current time step
-
-
-   ! if you would like a forward simulation WITHOUT a timewindow, simply set 'L_sim' equal to 'Ldt1',
-   ! and set Ldt2, Ldt3 and Ldt4 to 0. 
-
-   integer, parameter :: L_sim = 21000! total length of a simulation, in years
-   
-   !internal time step intervals (dt's cannot be set as 0 but Ldt's can be)
-   !**NOTE** dt# values should be defined such that dt#/dt1 is a positive integer
-   integer, parameter :: dt1 = 200! the finest time interval in the TW (in years), usually equal to coupling time step
-   integer, parameter :: dt2 = 0!  
-   integer, parameter :: dt3 = 0!
-   integer, parameter :: dt4 = 0! 
-   
-   integer, parameter :: Ldt1 = 21000! total length of time over which dt1 covers 
-   integer, parameter :: Ldt2 = 0! 
-   integer, parameter :: Ldt3 = 0!
-   integer, parameter :: Ldt4 = 0!
-
-
-   
-end module user_specs_mod
-
 !=================================================================================PHYSICSAL & MATHEMATICAL CONSTANTS===!
 module constants_mod
 !______________________________________________________________________________________________________________________!
@@ -169,6 +74,7 @@ module planets_mod
    real :: mass
    real :: rhoi
    real :: rhow
+   real :: rhosw
    real :: gacc
    real :: omega 
    real :: acoef, ccoef
@@ -182,14 +88,15 @@ module planets_mod
    !___________________________________________________________________________________________________________________!
       radius = 6.371E6              ! Radius of the Earth (m)
       mass = 5.976E24               ! Mass of the Earth (kg)
-      rhoi = 920.0                  ! Density of ice (kg/m^3)
+      rhoi = 917.0                  ! Density of ice (kg/m^3)
       rhow = 1000.0                 ! Density of fresh water (kg/m^3)
+      rhosw = 1025.0                ! Density of sea water (kg/m^3)
       gacc = 9.80665                ! Acceleration due to gravity at the Earth's surface (m/s^2)
       omega = 7.292e-5              ! Rotation rate of the Earth (rad/s)
       moiA=0.3296145*mass*radius**2 ! Principal moment of inertia of the Earth
       moiC=0.3307007*mass*radius**2 ! Principal moment of inertia of the Earth
       kf = 0.9342+0.008             ! Fluid (Tidal) Love number
-      
+
    end subroutine earth_init
    
    !==========================================================================================PLANETS_MOD: MARS_INIT===!
@@ -199,6 +106,7 @@ module planets_mod
       mass = 6.4185E23              ! Mass of Mars (kg)
       rhoi = 1220.0                 ! Density of ice mix on Mars (kg/m^3)
       rhow = 1000.0                 ! Density of fresh water (kg/m^3)
+      rhosw = 1025.0                ! Density of sea water (kg/m^3)
       gacc = 3.713                  ! Acceleration due to gravity at Mars's surface (m/s^2)
       omega = 7.08819118E-5         ! Rotation rate of Mars (rad/s)
       moiA=0.363914*mass*radius**2  ! Principal moments of inertia of Mars
@@ -214,6 +122,15 @@ module planets_mod
    
 end module planets_mod
 
+subroutine check_rcode(rcode, line)
+   integer, intent(in) :: rcode, line
+   if (rcode .ne. 0) then
+      write(*,'(A,I5,A,I6)') 'NETCDF operation failled with error code', rcode, ' on line', line
+      stop
+   endif
+
+end subroutine check_rcode
+
 !=======================================================================================================================!
 !                                                      MAIN BLOCK                                                       !
 !_______________________________________________________________________________________________________________________!
@@ -222,17 +139,78 @@ end module planets_mod
 program sl_model
 !_______________________________________________________________________________________________________________________!
 use spharmt
-use user_specs_mod
 use planets_mod
+use netcdf
 implicit none
 
 !=======================================================================================================================!
 !                                             VARIABLES                                                                 !
 !________________________________________________(Edit with caution)____________________________________________________!
 
+!=============================== Variables for input/output directories ================================================!
+character(60) :: inputfolder_ice
+character(60) :: inputfolder
+character(60) :: planetfolder
+character(60) :: outputfolder
+character(60) :: outputfolder_ice
+character(60) :: folder_coupled
+!=======================================================================================================================|
+
+!=============================== Variables for file formatting =========================================================!
+character(60) :: ext
+character(60) :: ftype
+!=======================================================================================================================|
+
+!=============================== Variables for file names ==============================================================!
+character(60) :: planetmodel
+character(60) :: icemodel
+character(60) :: icemodel_out
+character(60) :: timearray
+character(60) :: topomodel
+character(60) :: topo_initial
+character(60) :: topo_goal
+character(60) :: ism_iceload
+character(60) :: ism_bedrock
+!=======================================================================================================================|
+
+!=============================== Variables for model configuration =====================================================!
+logical :: checkmarine
+logical :: tpw
+logical :: calcRG
+logical :: input_times
+logical :: initial_topo
+logical :: iceVolume
+logical :: coupling
+logical :: patch_ice
+logical :: netcdfOutput
+!=======================================================================================================================|
+
+!=============================== Variables for time window =============================================================!
+integer  :: L_sim
+integer  :: dt1
+integer  :: dt2
+integer  :: dt3
+integer  :: dt4
+integer  :: Ldt1
+integer  :: Ldt2
+integer  :: Ldt3
+integer  :: Ldt4
+!=======================================================================================================================|
+
+!=============================== Other namelist variables ==============================================================!
+character(60) :: whichplanet
+
+
+! Model parameters==================================================================================================!
+integer, parameter :: norder = 512           ! Max spherical harmonic degree/order
+integer, parameter :: npam = 500             ! Max relaxation modes
+integer, parameter :: nglv = 512             ! Number of GL points in latitude
+real, parameter :: epsilon1 = 1.0E-5         ! Inner loop convergence criterion
+real, parameter :: epsilon2 = 1.0E-5         ! Outer loop convergence criterion 
+
 !===============================  Variables for ice sheet - sea level model coupling ===================================|
-real, dimension(nglv,2*nglv) :: nh_bedrock        ! Northern Hemispheric bedrock provided by the ice sheet model        |
-real, dimension(nglv,2*nglv) :: nh_iceload        ! Northern Hemispheric iceload provided by the ice sheet model        |
+real, dimension(nglv,2*nglv) :: nh_bedrock        ! Bedrock provided by the ice sheet model        |
+real, dimension(nglv,2*nglv) :: nh_iceload        ! Iceload provided by the ice sheet model        |
 !=======================================================================================================================|
 
 !============================================  Variables for the time window============================================|
@@ -259,9 +237,9 @@ integer, dimension(4) :: int_dt, Rdt, Ndt, Ldt         !   Values of internal ti
 real, dimension(:), allocatable :: times        ! Timesteps of ice model (years)                                        |
 real, dimension(:,:,:), allocatable :: icexy    ! Spatial inputs of ice model                                           |   
 real, dimension(:,:,:), allocatable :: sl       ! Big arrays of sea level change                                        |
-complex, dimension(:,:,:), allocatable:: dicestar,dS,deltaicestar,deltaS ! Big arrays of changes in loads               |
+complex, dimension(:,:,:), allocatable:: dicestar,dS,deltaicestar,deltaS! Big arrays of changes in loads               |
                                                                                        !  used in Love number viscous   | 
-                                                                                       !  response                      |
+                                                                                       !  response    
 real, dimension(:,:,:), allocatable :: rr,gg                         !  R and G (radial displacement and geoid change)  |
 complex, dimension(:,:,:), allocatable :: dlambda, deltalambda       ! Big arrays of changes in rotational driving      |
 real, dimension(:,:,:), allocatable :: dil                           ! Big array of changes in IL                       |
@@ -280,7 +258,8 @@ real, dimension(nglv,2*nglv) :: init_topo_corr  ! correction applied to compute 
 character(6) :: iterstr                         ! String for timestep number for reading/writing files                  |
 !=======================================================================================================================|
 ! Inputs
-real, dimension(nglv,2*nglv) :: truetopo        ! Present-day topography
+real, dimension(nglv,2*nglv) :: truetopo        ! Unknown initial topo
+real, dimension(nglv,2*nglv) :: topogoal        ! Present-day topography
 real, dimension(npam,norder) :: rprime,r,s      ! Love numbers
 real, dimension(norder) :: ke,he                ! Love numbers
 real, dimension(npam,norder) :: rprimeT,rT      ! Love numbers (tidal)
@@ -295,16 +274,21 @@ real, dimension(nglv,2*nglv) :: beta, cstarxy, cstar0    ! Grounded ice mask, ic
 real, dimension(nglv,2*nglv) :: tOxy, rOxy, tTxy         ! Projections used to calculate loads and shoreline migration
 complex, dimension(0:norder,0:norder) :: cstarlm,oldcstarlm,tOlm,rOlm,dSlm,olddSlm,&
                                          icestarlm,dicestarlm,deltaicestarlm,oldicestarlm,icestar0, &
-                                         t0lm,oldt0lm,tTlm,oldtTlm,dsllm,deltasllm  ! Above, in spectral domain
+                                         t0lm,oldt0lm,tTlm,oldtTlm,dsllm,deltasllm,icelm  ! Above, in spectral domain
+real, dimension(0:norder,0:norder) :: Clm,Slm                      ! GRDMIP outputs
+real, dimension(0:norder,0:norder) :: deltaS_real, deltaS_img
+
 
 real :: conserv                                          ! Uniform geoid shift (ΔΦ/g)
 real :: ttl, ekhl                                        ! Used in Love number calculations
+real :: total_delta_g                                    ! Used for GRDMIP outputs
 complex, dimension(0:norder,0:norder) :: viscous         ! Used in Love number calculations
 real :: xi, zeta                                         ! Convergence checks
-real :: ice_volume                                ! ice volume 
+real :: ice_volume, grounded_ice_volume                  ! ice volume, if checkmarine is false, these will be same as model assumes
+                                                         ! all ice is grounded
 ! For calculating R and G separately
-real, dimension(nglv,2*nglv) :: rrxy, drrxy_computed
-complex, dimension(0:norder,0:norder) :: rrlm, dgglm, drrlm_computed
+real, dimension(nglv,2*nglv) :: rrxy, drrxy_computed, ggxy
+complex, dimension(0:norder,0:norder) :: rrlm, dgglm, drrlm_computed, gglm
 
 complex :: viscousrr
 
@@ -325,6 +309,9 @@ character(6) :: numstr, numstr2                             ! String for timeste
 integer :: counti, countf,countrate         ! Computation timing
 real :: counti_cpu, countf_cpu
 type(sphere) :: spheredat                                   ! SH transform data to be passed to subroutines
+real :: maf, ocean_area_grdice, ocean_area                  ! GRDMIP outputs
+real, dimension(nglv, 2*nglv) :: mafxy                      ! Mass above floatation in each given grid cell
+complex, dimension(0:norder, 0:norder) :: maflm                ! Spectral domain of above, used to take area-weighted sum
 
 ! For Jerry's code to read in Love numbers
 integer :: legord(norder),nmod(norder),nmodes(norder),ll,nm,np
@@ -334,6 +321,8 @@ real, dimension(npam,norder) :: resh,resl,resk,tresh,tresl,tresk
 real :: taurr,taurt,dmx,dmy
 
 real, dimension(nglv,2*nglv) :: beta0, cxy0, cxy
+real, dimension(nglv, 2*nglv) :: land_ice_area_fraction !beta0 without floating ice check; used for grdmip outputs
+complex, dimension(0:norder, 0:norder) :: c_oceanlm, c_oceanstarlm ! Used to calculate grdmip outputs
 real, dimension(nglv,2*nglv) :: topoxy, topoxy_m1, tinit
                                               ! topoxy_m1: topogramy from the previous timestep (m1: minus one)
                                               ! topoxy: topography at the currect timestep
@@ -346,11 +335,52 @@ integer :: iargc, nargs                                 ! Arguments read in from
 character(16) :: carg(20)                               ! Arguments from a bash script
 character(3) :: skip                                    ! variable used to skip lines in reading TPW file 
 
+! For netcdf I/O
+integer :: rcode, ncid, varid, lenattr
+integer :: ival4, jval4, len
+integer :: xid, yid, timid, ordid, degid
+integer, dimension(4) :: idim, start, count
+character(24) :: cvar, cunits
+character(200) :: cruntitle, cvarl
+character(*), parameter :: chist = 'SL_model.nc'
+integer, dimension(0:norder) :: order_list, degree_list
+real, dimension(nglv) :: lat
+real, dimension(2*nglv) :: lon
+integer ::  ndim
+
+
+! Reading in arguments from namelist
+
+namelist /io_directory/ inputfolder_ice, inputfolder, &
+                        planetfolder, outputfolder, outputfolder_ice, &
+                        folder_coupled
+namelist /file_format/ ext, fType
+namelist   /file_name/ planetmodel, icemodel, icemodel_out, &
+                     timearray, topomodel, topo_initial, topo_goal
+                     
+namelist /shared/ ism_iceload, ism_bedrock
+namelist /model_config/ checkmarine, tpw, calcRG, &
+                        input_times, initial_topo, iceVolume, &
+                        coupling, patch_ice, netcdfOutput
+namelist /timewindow_config/ L_sim, dt1, dt2, dt3, &
+                             dt4, Ldt1, Ldt2, Ldt3, &
+                             Ldt4
+namelist /others/ whichplanet
+open(201, file='namelist.sealevel', status='old', form='formatted')
+read(201, io_directory)
+read(201, file_format)
+read(201, file_name)
+read(201, shared)
+read(201, model_config)
+read(201, timewindow_config)
+read(201, others)
+
+close(201)
 
 ! Planetary values
-if (whichplanet == 'earth' .or. whichplanet == 'Earth' .or. whichplanet == 'EARTH') then
+if (trim(adjustl(whichplanet)) == 'earth' .or. trim(adjustl(whichplanet)) == 'Earth' .or. trim(adjustl(whichplanet)) == 'EARTH') then
    call earth_init
-elseif (whichplanet == 'mars' .or. whichplanet == 'Mars' .or. whichplanet == 'MARS') then
+elseif (trim(adjustl(whichplanet)) == 'mars' .or. trim(adjustl(whichplanet)) == 'Mars' .or. trim(adjustl(whichplanet)) == 'MARS') then
    call mars_init
 else
    write(*,*) 'The parameters for the planet you entered are not built in.' 
@@ -371,19 +401,19 @@ read (carg(2),*) iter      ! the coupling time step we are on (in years)
 read (carg(3),*) dtime     ! coupling time (in years)
 read (carg(4),*) starttime ! start time of the simulation (in years)
 
-if (dtime /= dt1) then 
-   write(*,*) 'dtime and dt1 should be equal to each other.'
-   write(*,*) 'Please check your set up for the variables'
-   write(*,*) 'Terminating: program sl_model'
-   stop
-endif
-
 if (itersl.lt.1) then 
     write(*,*) 'itersl must be equal to or greather than 1'
     write(*,*) 'itersl = 1: No topography correction'
     write(*,*) 'itersl > 1: topography correction'
     write(*,*) 'Terminating: program sl_model'
     stop
+endif
+
+if (dtime /= dt1) then 
+   write(*,*) 'dtime and dt1 should be equal to each other.'
+   write(*,*) 'Please check your set up for the variables'
+   write(*,*) 'Terminating: program sl_model'
+   stop
 endif
 
 !##################################################################################################################
@@ -572,7 +602,7 @@ call spharmt_init(spheredat, 2*nglv, nglv, norder, radius) ! Initialize sphereda
 !-----------------------------------------------------------
 if (coupling) then 
     write(*,*) 'Sea level model is coupled to the ice sheet model, reading in NH_iceload'
-    open(unit = 1, file = folder_coupled//'NH_iceload'//ext, form = 'formatted', access = 'sequential', &
+    open(unit = 1, file = trim(adjustl(folder_coupled))//trim(adjustl(ism_iceload))//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
     & status = 'old')
     read(1,*) nh_iceload
     close(1)
@@ -598,7 +628,7 @@ if (nmelt==0) then
     
     !====================== topography and ice load========================
     ! read in the initial iceload from the coupled ice input folder
-    open(unit = 1, file = inputfolder_ice//icemodel//trim(numstr)//ext, form = 'formatted',  &
+    open(unit = 1, file = trim(adjustl(inputfolder_ice))//trim(adjustl(icemodel))//trim(numstr)//trim(adjustl(ext)), form = 'formatted',  &
     & access = 'sequential', status = 'old')
     read(1,*) icexy(:,:,1)
     close(1)
@@ -606,7 +636,7 @@ if (nmelt==0) then
     !  Initialize topography (STEP 1)
     if (initial_topo) then   
        write(*,*) 'Reading in initial topo file'
-       open(unit = 1, file = inputfolder//topo_initial//ext, form = 'formatted', access = 'sequential', &
+       open(unit = 1, file = trim(adjustl(inputfolder))//trim(adjustl(topo_initial))//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
        & status = 'old')
        read(1,*) tinit_0
        close(1)
@@ -615,7 +645,7 @@ if (nmelt==0) then
     
        ! Present-day observed topography
        write(*,*) 'Reading in ETOPO2 file'
-       open(unit = 1, file = inputfolder//topomodel//ext, form = 'formatted', access = 'sequential', status = 'old')
+       open(unit = 1, file = trim(adjustl(inputfolder))//trim(adjustl(topomodel))//trim(adjustl(ext)), form = 'formatted', access = 'sequential', status = 'old')
        read(1,*) truetopo
        close(1)
       
@@ -630,19 +660,29 @@ if (nmelt==0) then
            write(iterstr,'(I2)') itersl-1
            iterstr = trim(adjustl(iterstr))
         
-         open(unit = 1, file = outputfolder//'pred_pres_topo_'//trim(iterstr)//ext, form = 'formatted', &
+         if (final_goal) then
+            open(unit = 1, file = trim(adjustl(inputfolder))//trim(adjustl(topo_goal))//trim(adjustl(ext)), form = 'formatted', access = 'sequential', status = 'old')
+            read(1,*) topogoal
+            close(1)
+         endif
+
+         open(unit = 1, file = trim(adjustl(outputfolder))//'pred_pres_topo_'//trim(iterstr)//trim(adjustl(ext)), form = 'formatted', &
            & access = 'sequential', status = 'old')
          read(1,*) pred_pres_topo
          close(1)
         
         ! read in tinit_0 from the previous outer-iteration 'itersl-1'
-         open(unit = 1, file = outputfolder//'tgrid0_'//trim(iterstr)//ext, form = 'formatted', &
+         open(unit = 1, file = trim(adjustl(outputfolder))//'tgrid0_'//trim(iterstr)//trim(adjustl(ext)), form = 'formatted', &
          & access = 'sequential', status = 'old')
          read(1,*) tinit_0_last
          close(1)
         
           ! compute topography correction for the initial topography 
+         if (final_goal) then
+          init_topo_corr(:,:) = topogoal(:,:) - pred_pres_topo(:,:)
+         else
           init_topo_corr(:,:) = truetopo(:,:) - pred_pres_topo(:,:)
+         endif
           tinit_0(:,:) = tinit_0_last(:,:) + init_topo_corr(:,:)
      endif
     endif
@@ -651,7 +691,7 @@ if (nmelt==0) then
        write(*,*) 'Merge initial topography with NH_bedrock and initial ice load with NH_iceload'
     
        ! Bedrock from the ice sheet model
-       open(unit = 1, file = folder_coupled//'NH_bedrock'//ext, form = 'formatted', access = 'sequential', &
+       open(unit = 1, file = trim(adjustl(folder_coupled))//trim(adjustl(ism_bedrock))//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
        & status = 'old')
        read(1,*) nh_bedrock
        close(1)
@@ -687,14 +727,14 @@ if (nmelt==0) then
        endif
     
        !write out the current ice load as a new file to the sea-level model ice folder
-       open(unit = 1, file = outputfolder_ice//icemodel_out//trim(numstr)//ext, form ='formatted',  &
+       open(unit = 1, file = trim(adjustl(outputfolder_ice))//trim(adjustl(icemodel_out))//trim(numstr)//trim(adjustl(ext)), form ='formatted',  &
        & access = 'sequential', status = 'replace')
        write(1,'(ES16.9E2)') icexy(:,:,nfiles)     
        close(1) 
     endif ! end if (coupling)
     
     !write out the initial topo of the simulation, tgrid0 
-    open(unit = 1, file = outputfolder//'tgrid'//trim(numstr)//ext, form = 'formatted', access = 'sequential', &
+    open(unit = 1, file = trim(adjustl(outputfolder))//'tgrid'//trim(numstr)//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
     & status = 'replace')
     write(1,'(ES16.9E2)') tinit_0(:,:)
     close(1)
@@ -710,27 +750,80 @@ if (nmelt==0) then
           endif
        enddo
     enddo
+
+    call spat2spec(cxy0(:,:),c_oceanlm(:,:),spheredat)
+    ocean_area_grdice = c_oceanlm(0,0)*4*pi*radius**2
     
     !  write out the initial ocean function as a file
-    open(unit = 1, file = outputfolder//'ocean'//trim(numstr)//ext, form = 'formatted', access = 'sequential', &
+    open(unit = 1, file = trim(adjustl(outputfolder))//'ocean'//trim(numstr)//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
     & status = 'replace')
     write(1,'(ES14.4E2)') cxy0(:,:)
     close(1)
     
     !========================== beta function =========================     
+
+    ! From LANL folks
+    if (checkmarine) then
+      write(*,*) 'Performing Marine Check for initial beta'
+      do j = 1,2*nglv
+         do i = 1,nglv
+            if (tinit_0(i,j) > 0) then
+            ! If not marine...
+               icestarxy(i,j) = icexy(i,j,1)
+            elseif (icexy(i,j,1) > (abs(tinit_0(i,j)) * rhow / rhoi)) then
+            !...else if marine, but thick enough to be grounded
+               icestarxy(i,j) = icexy(i,j,1)
+            else
+            !...if floating ice
+               icestarxy(i,j) = 0.0
+            endif
+         enddo
+      enddo
+   else ! not checkmarine: use icexy unmodified
+      icestarxy(:,:) = icexy(:,:,1)
+   endif
+
     ! calculate initial beta
+      do j = 1,2*nglv
+         do i = 1,nglv
+            if (icestarxy(i,j) < epsilon(0.0)) then 
+               beta0(i,j)=1
+            else
+               beta0(i,j)=0
+            endif
+         enddo
+      enddo
+
+    ! calculate land_ice_area_fraction
     do j = 1,2*nglv
        do i = 1,nglv
-          if (icexy(i,j,1)==0) then 
-             beta0(i,j)=1
+          if (icexy(i,j,1) < epsilon(0.0)) then 
+             land_ice_area_fraction(i,j)=0
           else
-             beta0(i,j)=0
+             land_ice_area_fraction(i,j)=1
           endif
        enddo
     enddo
+
+    ! calculate initial mass above floatation
+    do j = 1,2*nglv
+       do i = 1,nglv
+          if (icestarxy(i,j) < epsilon(0.0)) then 
+             mafxy(i,j)=0
+          else
+            !From Goelzer et al 2020, TC. Equation 1
+             mafxy(i,j)= (icestarxy(i,j) + min(0.0, tinit_0(i,j)) * rhosw/rhoi) * rhoi
+          endif
+       enddo
+    enddo
+    call spat2spec(mafxy(:,:),maflm(:,:),spheredat)
+    maf = maflm(0,0)*4*pi*radius**2
     
+    call spat2spec(cxy0(:,:)*beta0(:,:),c_oceanstarlm(:,:),spheredat)
+    ocean_area = c_oceanstarlm(0,0)*4*pi*radius**2
+
     !  write out the initial beta function as a file
-    open(unit = 1, file = outputfolder//'beta'//trim(numstr)//ext, form = 'formatted', access = 'sequential', &
+    open(unit = 1, file = trim(adjustl(outputfolder))//'beta'//trim(numstr)//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
     & status = 'replace')
     write(1,'(ES14.4E2)') beta0(:,:)
     close(1)
@@ -738,7 +831,7 @@ if (nmelt==0) then
     !================== total ocean loading change =====================
     ! initialize the total ocean loading change and output as a file
     deltaS(:,:,1) = (0.0,0.0) 
-    open(unit = 1, file = outputfolder//'dS_converged'//trim(numstr)//ext, form = 'formatted', access = 'sequential', &
+    open(unit = 1, file = trim(adjustl(outputfolder))//'dS_converged'//trim(numstr)//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
     & status = 'replace')
     write(1,'(ES16.9E2)') deltaS(:,:,1)
     close(1)
@@ -746,18 +839,18 @@ if (nmelt==0) then
     !========================== computing time =========================
     ! To write out how much time it took to compute sea-level change over one step
     ! Open a new file
-    open(unit = 1, file = outputfolder//'elapsed_wall_time'//ext, form = 'formatted', access = 'sequential', &
+    open(unit = 1, file = trim(adjustl(outputfolder))//'elapsed_wall_time'//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
     & status = 'replace')
     close(1)
 
-    open(unit = 1, file = outputfolder//'elapsed_cpu_time'//ext, form = 'formatted', access = 'sequential', &
+    open(unit = 1, file = trim(adjustl(outputfolder))//'elapsed_cpu_time'//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
     & status = 'replace')
     close(1)
     
     !========================== time array =============================
     if (.not. input_times) then !if time array is not read in from a text file, make a new one       
         ! write a new file
-        open(unit = 1, file = outputfolder//timearray//ext, form = 'formatted', access = 'sequential', &
+        open(unit = 1, file = trim(adjustl(outputfolder))//trim(adjustl(timearray))//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
         & status = 'replace')
         write(1,'(ES14.4E2)') starttime
         close(1)
@@ -767,21 +860,21 @@ if (nmelt==0) then
     ! initialize the rotational components
     if (tpw) then
     
-       !dil(:,:,1) = 0.0
-       !dm(:,1) = 0.0
-       !dlambda(:,:,1) = (0.0,0.0)
+      !dil(:,:,1) = 0.0
+      !dm(:,1) = 0.0
+      !dlambda(:,:,1) = (0.0,0.0)
+      
+      il(:,:) = 0.0
+      mm(:) = 0.0
+      lambda(:,:) = 0.0
        
-       il(:,:) = 0.0
-       mm(:) = 0.0
-       lambda(:,:) = 0.0
-        
-       ! write the values (0.0) for the first timestep
-       open(unit = 1, file = outputfolder//'TPW'//ext, form = 'formatted', access = 'sequential', &
-       & status = 'replace')
-       write(1,'(9ES19.8E2/,3ES19.8E2/,18ES19.8E2)') il(:,:), mm(:), lambda(:,:)
-       ! write(1,'(9ES19.8E2/,3ES19.8E2/,18ES19.8E2)') dil(:,:,1), dm(:,1), dlambda(:,:,1)
-       close(1)
-    endif
+      ! write the values (0.0) for the first timestep
+      open(unit = 1, file = trim(adjustl(outputfolder))//'TPW'//trim(numstr)//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
+      & status = 'replace')
+      write(1,'(9ES19.8E2/,3ES19.8E2/,18ES19.8E2)') il(:,:), mm(:), lambda(:,:)
+      ! write(1,'(9ES19.8E2/,3ES19.8E2/,18ES19.8E2)') dil(:,:,1), dm(:,1), dlambda(:,:,1)
+      close(1)
+   endif
     !=========================ice volume================================
     if (iceVolume) then
            if (checkmarine) then
@@ -795,33 +888,369 @@ if (nmelt==0) then
                         icestarxy(i,j) = icexy(i,j,1)
                      else
                      !...if floating ice
-                        icestarxy(i,j) = 0
+                        icestarxy(i,j) = 0.0
                      endif
                   enddo
                enddo
                ! Decompose ice field 
-               call spat2spec(icestarxy(:,:),icestarlm(:,:),spheredat)
             else ! If not checking for floating ice
-               call spat2spec(icexy(:,:,1),icestarlm(:,:),spheredat) ! Decompose ice field
+               icestarxy(:,:) = icexy(:,:,1)
             endif
+         call spat2spec(icestarxy(:,:),icestarlm(:,:),spheredat)
+         call spat2spec(icexy(:,:,1), icelm(:,:), spheredat)
 
-        ice_volume = icestarlm(0,0)*4*pi*radius**2
+        grounded_ice_volume = icestarlm(0,0)*4*pi*radius**2
+        ice_volume = icelm(0,0)*4*pi*radius**2
 
-        open(unit = 1, file = outputfolder//'ice_volume'//ext, form = 'formatted', access ='sequential', &
+        open(unit = 1, file = trim(adjustl(outputfolder))//'ice_volume'//trim(adjustl(ext)), form = 'formatted', access ='sequential', &
         & status = 'replace')
-        write(1,'(ES14.4E2)') ice_volume
+        write(1,'(ES14.4E2)') grounded_ice_volume
         close(1)
     endif
    
     !HH: print out the number of iteration it takes for the inner convergence
-    open(unit = 1, file = outputfolder//'numiter'//ext, form = 'formatted', access ='sequential', &
+    open(unit = 1, file = trim(adjustl(outputfolder))//'numiter'//trim(adjustl(ext)), form = 'formatted', access ='sequential', &
     & status = 'replace')
     close(1) 
 
     !HH: print out the nmelt
-    open(unit = 1, file = outputfolder//'nmelt'//ext, form = 'formatted', access ='sequential', &
+    open(unit = 1, file = trim(adjustl(outputfolder))//'nmelt'//trim(adjustl(ext)), form = 'formatted', access ='sequential', &
     & status = 'replace')
     close(1)
+
+    !BP: initalize netcdf database
+    if (netcdfOutput) then
+      call check_rcode(nf90_create(chist, nf90_clobber, ncid), 914)
+      write(*,*) 'CREATING NEW NETCDF FILE'
+
+
+      cruntitle = 'Sea level model run'
+      call check_rcode(nf90_put_att(ncid, nf90_global, 'title', cruntitle), 916)
+
+      do i = 1,nglv
+         lat(nglv-i+1) = i*180./(1.0*nglv) - 90. - 90./(1.0*nglv)
+      enddo
+
+      do i = 1,2*nglv
+         lon(i) = (i-1)*360./(2.*nglv)
+      enddo
+
+      do i = 0,norder
+         degree_list(i) = i
+      enddo
+
+      do i = 0,norder
+         order_list(i) = i
+      enddo
+
+      call check_rcode(nf90_def_dim(ncid, 'lon', nglv*2, xid), 934)
+      call check_rcode(nf90_def_var(ncid, 'lon', NF90_DOUBLE, xid, varid), 935)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', 'longitude'), 936)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', 'degrees_east'), 937)
+      call check_rcode(nf90_put_att(ncid, varid, 'FORTRAN_format', 'f8.3'), 938)
+      call check_rcode(nf90_enddef(ncid), 939)
+      call check_rcode(nf90_put_var(ncid, varid, lon(:)), 940) !put lon data into netcdf
+      call check_rcode(nf90_redef(ncid), 941)
+
+      call check_rcode(nf90_def_dim(ncid, 'lat', nglv, yid), 943)
+      call check_rcode(nf90_def_var(ncid, 'lat', NF90_DOUBLE, yid, varid), 944)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', 'Latitude'), 945)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', 'degrees_north'), 946)
+      call check_rcode(nf90_put_att(ncid, varid, 'FORTRAN_format', 'f8.3'), 947)
+      call check_rcode(nf90_enddef(ncid), 948)
+      call check_rcode(nf90_put_var(ncid, varid, lat(:)), 949) !put lat data into netcdf
+      call check_rcode(nf90_redef(ncid), 950)
+
+      !add degree and order dimensions
+      call check_rcode(nf90_def_dim(ncid, 'degree', norder + 1, degid), 953)
+      call check_rcode(nf90_def_var(ncid, 'degree', nf90_int, degid, varid), 954)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', 'Degree'), 955)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', '1'), 956)
+      call check_rcode(nf90_put_att(ncid, varid, 'FORTRAN_format', 'I4'), 957)
+      call check_rcode(nf90_enddef(ncid), 958)
+      call check_rcode(nf90_put_var(ncid, varid, degree_list(:)), 959) !put degree into netcdf
+      call check_rcode(nf90_redef(ncid), 960)
+
+      call check_rcode(nf90_def_dim(ncid, 'order', norder + 1, ordid), 962)
+      call check_rcode(nf90_def_var(ncid, 'order', nf90_int, ordid, varid), 963)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', 'Order'), 964)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', '1'), 965)
+      call check_rcode(nf90_put_att(ncid, varid, 'FORTRAN_format', 'I4'), 966)
+      call check_rcode(nf90_enddef(ncid), 967)
+      call check_rcode(nf90_put_var(ncid, varid, order_list(:)), 968) !put order into netcdf
+      call check_rcode(nf90_redef(ncid), 969)
+
+      !add time dimension
+      call check_rcode(nf90_def_dim(ncid, 'time', nf90_unlimited, timid), 972)
+      call check_rcode(nf90_def_var(ncid, 'time', NF90_DOUBLE, timid, varid), 973)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', 'Calendar year corresponding to each output time (positive = CE, negative = BCE)'), 974)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', 'year'), 975)
+      call check_rcode(nf90_put_att(ncid, varid, 'FORTRAN_format', 'f12.3'), 976)
+
+      !Variable dimensions and attrs
+
+      !1D variables (only time)
+
+      if(iceVolume) then
+         !ice volume
+         cvar = 'ice_vol'
+         cvarl = 'grounded ice volume'
+         cunits = 'm3'
+         call check_rcode(nf90_def_var(ncid, cvar, nf90_float, timid, varid), 987)
+         call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 988)
+         call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 989)
+         call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f20.3'), 990)      
+      !additional new grdmip outputs
+         !grounded ice mass
+         cvar = 'grd_ice_mass'
+         cvarl = 'Spatial integration of grounded ice volume times ice density'
+         cunits = 'kg'
+         call check_rcode(nf90_def_var(ncid, cvar, NF90_DOUBLE, timid, varid), 996)
+         call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 997)
+         call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 998)
+         call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f20.3'), 999)    
+         !total ice mass
+         cvar = 'total_ice_mass'
+         cvarl = 'Spatial integration, total (grounded and floating) ice volume times ice density'
+         cunits = 'kg'
+         call check_rcode(nf90_def_var(ncid, cvar, NF90_DOUBLE, timid, varid), 1004)
+         call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1005)
+         call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1006)
+         call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f20.3'), 1007)
+      endif
+      !mass above floatation
+      cvar = 'maf'
+      cvarl = 'Land ice mass above flotation that would contribute to global mean sea-level change if converted to water and added to the ocean'
+      cunits = 'kg'
+      call check_rcode(nf90_def_var(ncid, cvar, NF90_DOUBLE, timid, varid), 1013)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1014)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1015)
+      call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f6.2'), 1016)    
+      !total ocean area including marine regions covered in grounded ice
+      cvar = 'ocean_area_grdice'
+      cvarl = 'Total ocean area including marine regions covered by grounded ice'
+      cunits = 'm2'
+      call check_rcode(nf90_def_var(ncid, cvar, NF90_DOUBLE, timid, varid), 1021)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1022)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1023)
+      call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f6.2'), 1024)
+      !total ocean area excluding marine regions covered in grounded ice
+      cvar = 'ocean_area'
+      cvarl = 'Total ocean area excluding marine regions covered by grounded ice'
+      cunits = 'm2'
+      call check_rcode(nf90_def_var(ncid, cvar, NF90_DOUBLE, timid, varid), 1029)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1030)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1031)
+      call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f6.2'), 1032)
+      !mean delta g
+      if(calcRG) then
+         cvar = 'mean_delta_g'
+         cvarl = 'Spatial mean of geoid height change (delta_g) over the ocean area'
+         cunits = 'm'
+         call check_rcode(nf90_def_var(ncid, cvar, NF90_DOUBLE, timid, varid), 1038)
+         call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1039)
+         call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1040)
+         call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f6.2'), 1041)
+      endif
+
+      !3D variables (lat, lon, time)
+      
+      !beta
+      cvar = 'beta'
+      cvarl = 'Grounded ice mask'
+      cunits = 'none'
+      call check_rcode(nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid), 1050)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1051)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1052)
+      call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','I1'), 1053)
+      !ocean
+      cvar = 'Ocean'
+      cvarl = 'Ocean mask'
+      cunits = 'none'
+      call check_rcode(nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid), 1058)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1059)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1060)
+      call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','I1'), 1061)
+      !Ocean area fraction
+      cvar = 'ocean_area_fraction'
+      cvarl = 'Fraction of horizontal grid-cell area covered by ocean'
+      cunits = '1'
+      call check_rcode(nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid), 1066)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1067)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1068)
+      call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f5.2'), 1069)
+      !Ice area fraction
+      cvar = 'land_ice_area_fraction'
+      cvarl = 'Fraction of horizontal grid-cell area covered by grounded and floating land ice'
+      cunits = '1'
+      call check_rcode(nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid), 1074)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1075)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1076)
+      call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f5.2'), 1077)
+      !tgrid
+      cvar = 'tgrid'
+      cvarl = 'Topography'
+      cunits = 'm'
+      call check_rcode(nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid), 1082)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1083)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1084)
+      call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f7.2'), 1085)
+      if(calcRG) then
+         !delta R
+         cvar = 'delta_r'
+         cvarl = 'Change in the bedrock elevation relative to the initial simulation time step'
+         cunits = 'm'
+         call check_rcode(nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid), 1091)
+         call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1092)
+         call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1093)
+         call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f7.2'), 1094)
+         !delta G
+         cvar = 'delta_g'
+         cvarl = 'Change in the geoid height relative to the initial simulation time step'
+         cunits = 'm'
+         call check_rcode(nf90_def_var(ncid, cvar, nf90_float, (/xid, yid, timid/), varid), 1099)
+         call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1100)
+         call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1101)
+         call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f7.2'), 1102)
+      endif
+
+
+      !3D variables (degree, order, time)
+
+      !dS_converged
+      cvar = 'dS_converged_real'
+      cvarl = 'Sea surface height in spectral coordinates (real component)'
+      cunits = 'unitless'
+      call check_rcode(nf90_def_var(ncid, cvar, nf90_float, (/degid, ordid, timid/), varid), 1112)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1113)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1114)
+      call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f6.3'), 1115)
+
+      cvar = 'dS_converged_img'
+      cvarl = 'Sea surface height in spectral coordinates (imaginary component)'
+      cunits = 'unitless'
+      call check_rcode(nf90_def_var(ncid, cvar, nf90_float, (/degid, ordid, timid/), varid), 1120)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1121)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1122)
+      call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f6.3'), 1123)
+      
+   !additional new grdmip outputs
+      !Clm
+      cvar = 'Clm'
+      cvarl = 'Cosine spherical harmonic coefficients (C_lm) of geoid height change (delta_g) between the first and final simulation timesteps'
+      cunits = '1'
+      call check_rcode(nf90_def_var(ncid, cvar, nf90_float, (/degid, ordid/), varid), 1130)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1131)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1132)
+      call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f6.3'), 1133)
+
+      !Slm
+      cvar = 'Slm'
+      cvarl = 'Sine spherical harmonic coefficients (S_lm) of geoid height change (delta_g) between the first and final simulation timesteps'
+      cunits = '1'
+      call check_rcode(nf90_def_var(ncid, cvar, nf90_float, (/degid, ordid/), varid), 1139)
+      call check_rcode(nf90_put_att(ncid, varid, 'long_name', cvarl), 1140)
+      call check_rcode(nf90_put_att(ncid, varid, 'units', cunits), 1141)
+      call check_rcode(nf90_put_att(ncid,varid,'FORTRAN_format','f6.3'), 1142)
+
+      !Leave define mode
+      call check_rcode(nf90_enddef(ncid), 1145)
+
+      !1D fields
+      start(1) = iter + 1
+
+      !add start time to time dimension
+      call check_rcode(nf90_inq_varid(ncid, 'time', varid), 1151)
+      call check_rcode(nf90_put_var(ncid, varid, starttime, start), 1152)
+
+      !write fields
+
+      if(iceVolume) then
+         call check_rcode(nf90_inq_varid(ncid, 'ice_vol', varid), 1157)
+         call check_rcode(nf90_put_var(ncid, varid, grounded_ice_volume, start), 1158)
+
+         call check_rcode(nf90_inq_varid(ncid, 'grd_ice_mass', varid), 1160)
+         call check_rcode(nf90_put_var(ncid, varid, (grounded_ice_volume*rhoi), start), 1161)
+
+         call check_rcode(nf90_inq_varid(ncid, 'total_ice_mass', varid), 1163)
+         call check_rcode(nf90_put_var(ncid, varid, (ice_volume*rhoi), start), 1164)
+      endif
+
+      call check_rcode(nf90_inq_varid(ncid, 'maf', varid), 1167)
+      call check_rcode(nf90_put_var(ncid, varid, maf, start), 1168)
+
+      call check_rcode(nf90_inq_varid(ncid, 'ocean_area_grdice', varid), 1170)
+      call check_rcode(nf90_put_var(ncid, varid, ocean_area_grdice, start), 1171)
+
+      call check_rcode(nf90_inq_varid(ncid, 'ocean_area', varid), 1173)
+      call check_rcode(nf90_put_var(ncid, varid, ocean_area, start), 1174)
+
+      if(calcRG) then
+         call check_rcode(nf90_inq_varid(ncid, 'mean_delta_g', varid), 1177)
+         call check_rcode(nf90_put_var(ncid, varid, 0, start), 1178) !no change in delta g at initial time step
+      endif
+
+      !3D fields
+      !y,x,time
+      start(1) = 1
+      count(1) = nglv*2
+      start(2) = 1
+      count(2) = nglv
+      start(3) = iter + 1
+      count(3) = 1
+
+      call check_rcode(nf90_inq_varid(ncid, 'beta', varid), 1190)
+      call check_rcode(nf90_put_var(ncid, varid, beta0, start, count), 1191)
+
+      call check_rcode(nf90_inq_varid(ncid, 'land_ice_area_fraction', varid), 1193)
+      call check_rcode(nf90_put_var(ncid, varid, land_ice_area_fraction, start, count), 1194)
+
+      call check_rcode(nf90_inq_varid(ncid, 'Ocean', varid), 1196)
+      call check_rcode(nf90_put_var(ncid, varid, cxy0, start, count), 1197)
+
+      call check_rcode(nf90_inq_varid(ncid, 'ocean_area_fraction', varid), 1199)
+      call check_rcode(nf90_put_var(ncid, varid, cxy0, start, count), 1200)
+
+      call check_rcode(nf90_inq_varid(ncid, 'tgrid', varid), 1202)
+      call check_rcode(nf90_put_var(ncid, varid, tinit_0, start, count), 1203)
+
+
+
+      if(calcRG) then
+         rr(:,:,1) = 0
+         gg(:,:,1) = 0 !no change in r or g at first timestep
+         call check_rcode(nf90_inq_varid(ncid, 'delta_r', varid), 1210)
+         call check_rcode(nf90_put_var(ncid, varid, rr(:,:,1), start, count), 1211)
+
+         call check_rcode(nf90_inq_varid(ncid, 'delta_g', varid), 1213)
+         call check_rcode(nf90_put_var(ncid, varid, gg(:,:,1), start, count), 1214)
+      endif
+
+      !degree, order, time
+      start(1) = 1
+      count(1) = norder + 1
+      start(2) = 1
+      count(2) = norder + 1
+      start(3) = iter + 1
+      count(3) = 1
+
+      do i = 0, norder
+         do j = 0, norder
+         deltaS_real(i,j) = real(deltaS(i,j,1))
+         deltaS_img(i,j)  = aimag(deltaS(i,j,1))
+         enddo
+      enddo
+
+      call check_rcode(nf90_inq_varid(ncid, 'dS_converged_real', varid), 1232)
+      call check_rcode(nf90_put_var(ncid, varid, deltaS_real(:,:), start), 1233)
+
+      call check_rcode(nf90_inq_varid(ncid, 'dS_converged_img', varid), 1235)
+      call check_rcode(nf90_put_var(ncid, varid, deltaS_img(:,:), start), 1236)
+
+      call check_rcode(nf90_redef(ncid), 1238)
+      call check_rcode(nf90_close(ncid), 1239)
+
+    endif
 
     write(*,*) 'DONE INITIALIZATION. EXITING THE PROGRAM'
     call exit
@@ -846,7 +1275,7 @@ if (nmelt.GT.0) then
           numstr = trim(adjustl(numstr))
     
           ! read in ice files (upto the previous time step) from the sea-level model folder
-          open(unit = 1, file = outputfolder_ice//icemodel_out//trim(numstr)//ext, form = 'formatted',  &
+          open(unit = 1, file = trim(adjustl(outputfolder_ice))//trim(adjustl(icemodel_out))//trim(numstr)//trim(adjustl(ext)), form = 'formatted',  &
           & access = 'sequential', status = 'old')
           read(1,*) icexy(:,:,n)
           close(1)
@@ -863,7 +1292,7 @@ if (nmelt.GT.0) then
 !        numstr2 = trim(adjustl(numstr2))        
      
        ! for iceload at the current time step, read the corresponding file from 'inputfolder_ice'
-       open(unit = 1, file = inputfolder_ice//icemodel//trim(numstr)//ext, form = 'formatted',  &
+       open(unit = 1, file = trim(adjustl(inputfolder_ice))//trim(adjustl(icemodel))//trim(numstr)//trim(adjustl(ext)), form = 'formatted',  &
        & access = 'sequential', status = 'old')
        read(1,*) icexy(:,:,nfiles)
        close(1) 
@@ -900,7 +1329,7 @@ if (nmelt.GT.0) then
 !           write(numstr2,'(I6)') k
 !           numstr2 = trim(adjustl(numstr2))
           ! read in ice files (upto the previous time step) from the sea-level model folder
-          open(unit = 1, file = inputfolder_ice//icemodel//trim(numstr)//ext, form = 'formatted',  &
+          open(unit = 1, file = trim(adjustl(inputfolder_ice))//trim(adjustl(icemodel))//trim(numstr)//trim(adjustl(ext)), form = 'formatted',  &
           & access = 'sequential', status = 'old')
           read(1,*) icexy(:,:,n)
        enddo  
@@ -909,8 +1338,8 @@ if (nmelt.GT.0) then
     
     !Time array
     if (input_times) then ! time array is inputted from an existing text file, read in and write out
-       open(unit = 1, file = inputfolder//timearray//ext, form = 'formatted', access = 'sequential', status = 'old')
-       open(unit = 2, file = outputfolder//timearray//ext, form = 'formatted', access = 'sequential', &
+       open(unit = 1, file = trim(adjustl(inputfolder))//trim(adjustl(timearray))//trim(adjustl(ext)), form = 'formatted', access = 'sequential', status = 'old')
+       open(unit = 2, file = trim(adjustl(outputfolder))//trim(adjustl(timearray))//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
        & status = 'replace')
        read(1,*) times
        write(2,'(ES14.4E2)') times
@@ -924,7 +1353,7 @@ if (nmelt.GT.0) then
        enddo
       ! write(*,*) 'times', times
        
-       open(unit = 1, file = outputfolder//timearray//ext, form = 'formatted', access = 'sequential', &
+       open(unit = 1, file = trim(adjustl(outputfolder))//trim(adjustl(timearray))//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
        & status = 'old', position='append')
        write(1,'(ES14.4E2)') times(nfiles)
        close(1)         
@@ -932,7 +1361,7 @@ if (nmelt.GT.0) then
     
     !Read in the initial topography (topo at the beginning of the full simulation)
     !This is used to output the total sea level change from the beginning of the simulation
-    open(unit = 1, file = outputfolder//'tgrid0'//ext, form = 'formatted', access = 'sequential', &
+    open(unit = 1, file = trim(adjustl(outputfolder))//'tgrid0'//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
     & status = 'old')
     read(1,*) tinit_0
     close(1)
@@ -944,7 +1373,7 @@ if (nmelt.GT.0) then
     write(numstr,'(I4)') j
     numstr = trim(adjustl(numstr))
     
-    open(unit = 1, file = outputfolder//'ocean'//trim(numstr)//ext, form = 'formatted', access = 'sequential', &
+    open(unit = 1, file = trim(adjustl(outputfolder))//'ocean'//trim(numstr)//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
     & status = 'old')
     read(1,*) cxy0(:,:)
     close(1)
@@ -954,56 +1383,68 @@ if (nmelt.GT.0) then
     endif
     
     ! read in initial (first file within the time window) beta  
-    open(unit = 1, file = outputfolder//'beta'//trim(numstr)//ext, form = 'formatted', access = 'sequential', &
+    open(unit = 1, file = trim(adjustl(outputfolder))//'beta'//trim(numstr)//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
     & status = 'old')
     read(1,*) beta0(:,:)
     close(1)
 
     if (tpw) then
         ! read in variables for the rotation signal 
-        open(unit = 1, file = outputfolder//'TPW'//ext, form = 'formatted', access = 'sequential', &
-        & status = 'old')
+      !   open(unit = 1, file = outputfolder//'TPW'//ext, form = 'formatted', access = 'sequential', &
+      !   & status = 'old')
 
-        oldlambda(:,:) = (0.0,0.0)
-        oldil(:,:) = 0.0
-        oldm(:) = 0.0
-       
-        do n = 1, nfiles-1
-            ! find the number of lines to skip to read in appropriate TPW components
-            if (n==1) then
-                j = TIMEWINDOW(n)
-            else
-                j = TIMEWINDOW(n) - TIMEWINDOW(n-1) - 1
-            endif
-            
-            !skip lines to read in the rotational components corresponding to timesteps within the TW 
-            do m = 1, j
-                read(1,*) !skip line for il
-                read(1,*) !skip reading in mm
-                read(1,*) !skip reading in lambda
-            enddo
-            
-            !read in TPW components - total rotational change from the beginning of simulation 
-            read(1,'(9ES19.8E2)') ((il(i,j), i=1,3), j=1,3)
-            read(1,'(3ES19.8E2)') (mm(i), i=1,3)
-            read(1,'(18ES19.8E2)') ((lambda(i,j),i=0,2),j=0,2)
-    
-            !rotational changes between each time step. 
-            dm(:,n) = mm(:) - oldm(:)
-            oldm(:) = mm(:)
-            
-            dil(:,:,n) = il(:,:) - oldil(:,:)
-            oldil(:,:) = il(:,:)
-            
-            dlambda(:,:,n) = lambda(:,:) - oldlambda(:,:)
-            oldlambda(:,:) = lambda(:,:)
-            
-            if (n == nfiles-1) then 
-                deltalambda(:,:,nfiles-1) = lambda(:,:)
-            endif
+      oldlambda(:,:) = (0.0,0.0)
+      oldil(:,:) = 0.0
+      oldm(:) = 0.0
+     
+
+      do n = 1, nfiles-1
+          ! ! find the number of lines to skip to read in appropriate TPW components
+          ! if (n==1) then
+          !     j = TIMEWINDOW(n)
+          ! else
+          !     j = TIMEWINDOW(n) - TIMEWINDOW(n-1) - 1
+          ! endif
           
-        enddo
-        close(1)
+          ! !skip lines to read in the rotational components corresponding to timesteps within the TW 
+          ! do m = 1, j
+          !     read(1,*) !skip line for il
+          !     read(1,*) !skip reading in mm
+          !     read(1,*) !skip reading in lambda
+          ! enddo
+          
+          j = TIMEWINDOW(n) ! TPW file numbers to read in from the TW array 
+
+          !read in TPW componenet from file
+          write(numstr,'(I6)') j
+          numstr = trim(adjustl(numstr))
+          ! read in ice files (upto the previous time step) from the sea-level model folder
+          open(unit = 1, file = trim(adjustl(outputfolder))//'TPW'//trim(numstr)//trim(adjustl(ext)), form = 'formatted',  &
+          & access = 'sequential', status = 'old')
+
+          
+          !read in TPW components - total rotational change from the beginning of simulation 
+          read(1,'(9ES19.8E2)') ((il(i,j), i=1,3), j=1,3)
+          read(1,'(3ES19.8E2)') (mm(i), i=1,3)
+          read(1,'(18ES19.8E2)') ((lambda(i,j),i=0,2),j=0,2)
+
+  
+          !rotational changes between each time step. 
+          dm(:,n) = mm(:) - oldm(:)
+          oldm(:) = mm(:)
+          
+          dil(:,:,n) = il(:,:) - oldil(:,:)
+          oldil(:,:) = il(:,:)
+          
+          dlambda(:,:,n) = lambda(:,:) - oldlambda(:,:)
+          oldlambda(:,:) = lambda(:,:)
+          
+          if (n == nfiles-1) then 
+              deltalambda(:,:,nfiles-1) = lambda(:,:)
+          endif
+        
+      enddo
+      close(1)
     endif !endif (TPW)
     
     ! topography from the previous timestep
@@ -1011,7 +1452,7 @@ if (nmelt.GT.0) then
     write(numstr2,'(I4)') m
     numstr2 = trim(adjustl(numstr2))
     
-    open(unit = 1, file = outputfolder//'tgrid'//trim(numstr2)//ext, form = 'formatted', access = 'sequential', &
+    open(unit = 1, file = trim(adjustl(outputfolder))//'tgrid'//trim(numstr2)//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
     & status = 'old')
     read(1,*) topoxy_m1(:,:)
     close(1)
@@ -1025,7 +1466,7 @@ if (nmelt.GT.0) then
         write(numstr,'(I4)') j
         numstr = trim(adjustl(numstr))
     
-        open(unit = 1, file = outputfolder//'tgrid'//trim(numstr)//ext, form = 'formatted', access = 'sequential', &
+        open(unit = 1, file = trim(adjustl(outputfolder))//'tgrid'//trim(numstr)//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
         & status = 'old')
         read(1,*) tinit(:,:)
         close(1)
@@ -1039,7 +1480,7 @@ if (nmelt.GT.1) then
    write(numstr,'(I4)') j
    numstr = trim(adjustl(numstr))
    
-   open(unit = 1, file = outputfolder//'ocean'//trim(numstr)//ext, form = 'formatted', access = 'sequential', &
+   open(unit = 1, file = trim(adjustl(outputfolder))//'ocean'//trim(numstr)//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
    & status = 'old')
    read(1,*) cxy(:,:)
    close(1)
@@ -1056,7 +1497,7 @@ if (nmelt.GT.1) then
       numstr = trim(adjustl(numstr))
    
    
-      open(unit = 1, file = outputfolder//'dS_converged'//trim(numstr)//ext, form = 'formatted', access = 'sequential', &
+      open(unit = 1, file = trim(adjustl(outputfolder))//'dS_converged'//trim(numstr)//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
       & status = 'old')
       read(1,'(ES16.9E2)') dS_converged(:,:)
       close(1)
@@ -1069,7 +1510,7 @@ endif
 !-----------------------------------------------------------
 !  Read in Love numbers (Jerry's output from 'maxwell.f')
 !-----------------------------------------------------------
-open(unit = 2, file = planetfolder//planetmodel, status = 'old')
+open(unit = 2, file = trim(adjustl(planetfolder))//trim(adjustl(planetmodel)), status = 'old')
 ! Following code borrowed from Jerry
 read(2,*) 
 do j = 1,norder
@@ -1146,15 +1587,16 @@ do n=1, nfiles
                icestarxy(i,j) = icexy(i,j,n)
             else
             !...if floating ice
-               icestarxy(i,j) = 0
+               icestarxy(i,j) = 0.0
             endif
          enddo
       enddo
       ! Decompose ice field 
-      call spat2spec(icestarxy(:,:),icestarlm(:,:),spheredat)
    else ! If not checking for floating ice
-      call spat2spec(icexy(:,:,n),icestarlm(:,:),spheredat) ! Decompose ice field
+      icestarxy(:,:) = icexy(:,:,n)
    endif
+   call spat2spec(icestarxy(:,:),icestarlm(:,:),spheredat)
+   call spat2spec(icexy(:,:,n), icelm(:,:), spheredat)
    
    if (n == 1) then
       dicestarlm(:,:) = 0.0            ! No change at first timestep
@@ -1178,7 +1620,7 @@ enddo
 ! Calculate current beta based on iceload at the current timestep
 do j = 1,2*nglv
    do i = 1,nglv
-       if (icexy(i,j,nfiles) < epsilon(0.0)) then 
+       if (icestarxy(i,j) < epsilon(0.0)) then 
           beta(i,j) = 1
        else
           beta(i,j) = 0
@@ -1436,20 +1878,11 @@ enddo ! End inner loop
 write(*,'(A,I4,A)') '  ', ninner, ' inner-loop iterations'
 
 !HH: print out the number of iteration it takes for the inner convergence
-open(unit = 1, file = outputfolder//'numiter'//ext, form = 'formatted', access ='sequential', &
+open(unit = 1, file = trim(adjustl(outputfolder))//'numiter'//trim(adjustl(ext)), form = 'formatted', access ='sequential', &
 & status = 'old',position='append')
 write(1,'(I5)') ninner
 close(1)
 
-! Write out the converged rotation-related quantities 
-if (tpw) then
-   open(unit = 1, file = outputFolder//'TPW'//ext, &
-   & form = 'formatted', access = 'sequential', status = 'old', position='append')
-!        write(1,'(9ES19.8E2/,3ES19.8E2/,18ES19.8E2)') dil(:,:,nfiles), dm(:,nfiles), dlambda(:,:,nfiles)
-   write(1,'(9ES19.8E2/,3ES19.8E2/,18ES19.8E2)') il(:,:), mm(:), lambda(:,:)
-   close(1)
-endif
- 
 !      write(*,*) 'dil', dil(:,:,nfiles)
 !      write(*,*) 'dm', dm(:,nfiles)
 !      write(*,*) 'dlambda', dlambda(:,:,nfiles)
@@ -1473,7 +1906,7 @@ if (calcRG) then ! For R calculations
    endif
    rrlm(0:2,0:2) = rrlm(0:2,0:2) + rr_rot(0:2,0:2)
    call spec2spat(rrxy, rrlm, spheredat)
-   rr(:,:,n) = rrxy(:,:)
+   rr(:,:,nfiles) = rrxy(:,:)
 endif
  
 
@@ -1494,6 +1927,38 @@ do j = 1,2*nglv
    enddo
 enddo
 
+! calculate mass above floatation for timestep
+    do j = 1,2*nglv
+       do i = 1,nglv
+          if (icestarxy(i,j) < epsilon(0.0)) then 
+             mafxy(i,j)=0
+          else
+            !From Goelzer et al 2020, TC. Equation 1
+             mafxy(i,j)=icestarxy(i,j) + min(0.0, topoxy(i,j)) * rhosw/rhoi
+          endif
+       enddo
+    enddo
+    call spat2spec(mafxy(:,:),maflm(:,:),spheredat)
+    maf = maflm(0,0)*4*pi*radius**2
+
+!Calculate ocean area with and without considering grounded ice
+call spat2spec(cxy(:,:),c_oceanlm(:,:),spheredat)
+ocean_area_grdice = c_oceanlm(0,0)*4*pi*radius**2
+
+call spat2spec(cxy(:,:)*beta(:,:),c_oceanstarlm(:,:),spheredat)
+ocean_area = c_oceanstarlm(0,0)*4*pi*radius**2
+
+!Calculate ice area fraction for this timestep
+do j = 1,2*nglv
+       do i = 1,nglv
+          if (icexy(i,j,n) < epsilon(0.0)) then 
+             land_ice_area_fraction(i,j)=0
+          else
+             land_ice_area_fraction(i,j)=1
+          endif
+       enddo
+    enddo
+
 !=========================================================================================
 !                          OUTPUT                           
 !_________________________________________________________________________________________
@@ -1512,41 +1977,51 @@ if (nmelt.GT.0) then
 !   write(1,'(ES16.9E2)') tinit_0(:,:)-topoxy(:,:)
 !   close(1)
 
+   !BP: Write out the converged rotation-related quantities in new format
+   if (tpw) then
+      open(unit = 1, file = trim(adjustl(outputFolder))//'TPW'//trim(numstr)//trim(adjustl(ext)), &
+      & form = 'formatted', access = 'sequential', status = 'replace')
+   !        write(1,'(9ES19.8E2/,3ES19.8E2/,18ES19.8E2)') dil(:,:,nfiles), dm(:,nfiles), dlambda(:,:,nfiles)
+      write(1,'(9ES19.8E2/,3ES19.8E2/,18ES19.8E2)') il(:,:), mm(:), lambda(:,:)
+      close(1)
+   endif
+
    !HH: print out the nmelt
-   open(unit = 1, file = outputfolder//'nmelt'//ext, form = 'formatted', access ='sequential', &
+   open(unit = 1, file = trim(adjustl(outputfolder))//'nmelt'//trim(adjustl(ext)), form = 'formatted', access ='sequential', &
    & status = 'old',position='append')
    write(1,'(I4)') nmelt
    close(1)
 
    ! topography at the current timestep
-   open(unit = 1, file = outputfolder//'tgrid'//trim(numstr)//ext, form = 'formatted', access = 'sequential', &
+   open(unit = 1, file = trim(adjustl(outputfolder))//'tgrid'//trim(numstr)//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
    & status = 'replace')
    write(1,'(ES16.9E2)') topoxy(:,:)
    close(1)
 
    ! converged ocean function at the current timestep
-   open(unit = 1, file = outputfolder//'ocean'//trim(numstr)//ext, form = 'formatted', access = 'sequential', &
+   open(unit = 1, file = trim(adjustl(outputfolder))//'ocean'//trim(numstr)//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
    & status = 'replace')
    write(1,'(ES14.4E2)') cxy(:,:)
    close(1)
    
    ! converged beta function at the current timestpe
-   open(unit = 1, file = outputfolder//'beta'//trim(numstr)//ext, form = 'formatted', access = 'sequential', &
+   open(unit = 1, file = trim(adjustl(outputfolder))//'beta'//trim(numstr)//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
    & status = 'replace')
    write(1,'(ES14.4E2)') beta(:,:)
    close(1)   
 
    ! output converged total ocean loading changes 
-   open(unit = 1, file = outputfolder//'dS_converged'//trim(numstr)//ext, form = 'formatted', access = 'sequential', &
+   open(unit = 1, file = trim(adjustl(outputfolder))//'dS_converged'//trim(numstr)//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
    & status = 'replace')
    write(1,'(ES14.7E2)') deltaS(:,:,nfiles)
    close(1)
    
    if (iceVolume) then
-	  ice_volume = icestarlm(0,0)*4*pi*radius**2 !multiply the (0,0) component of ice to the area of a sphere
-      open(unit = 1, file = outputfolder//'ice_volume'//ext, form = 'formatted', access = 'sequential', &
+	   grounded_ice_volume = icestarlm(0,0)*4*pi*radius**2 !multiply the (0,0) component of ice to the area of a sphere
+	   ice_volume = icelm(0,0)*4*pi*radius**2 !multiply the (0,0) component of ice to the area of a sphere
+      open(unit = 1, file = trim(adjustl(outputfolder))//'ice_volume'//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
       & status = 'old', position = 'append')
-      write(1,'(ES14.4E2)') ice_volume
+      write(1,'(ES14.4E2)') grounded_ice_volume
       close(1)
    endif
    
@@ -1557,30 +2032,30 @@ if (nmelt.GT.0) then
      write(*,*) 'Last time step of the simulation! writing out files for next outer-iteration loop'
      ! write out the predicted present day topography into a file so it can be used in the next outer-iteration
 
-     open(unit = 1, file = outputfolder//'pred_pres_topo_'//trim(iterstr)//ext, form = 'formatted',  &
+     open(unit = 1, file = trim(adjustl(outputfolder))//'pred_pres_topo_'//trim(iterstr)//trim(adjustl(ext)), form = 'formatted',  &
      & access = 'sequential', status = 'replace')
      write(1,'(ES16.9E2)') topoxy(:,:)
      close(1)
      
      ! write out the initial topography of the simulation at the currect outer-loop into a file
-     open(unit = 1, file = outputfolder//'tgrid0_'//trim(iterstr)//ext, form = 'formatted',  &
+     open(unit = 1, file = trim(adjustl(outputfolder))//'tgrid0_'//trim(iterstr)//trim(adjustl(ext)), form = 'formatted',  &
      & access = 'sequential', status = 'replace')
      write(1,'(ES16.9E2)') tinit_0(:,:)
      close(1)
    endif 
    
    if (calcRG) then
-      open(unit = 1, file = outputfolder//'R'//trim(numstr)//ext, form = 'formatted', access = 'sequential', &
+      open(unit = 1, file = trim(adjustl(outputfolder))//'R'//trim(numstr)//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
       & status = 'replace')
-      write(1,'(ES14.4E2)') rr(:,:,n)
+      write(1,'(ES14.4E2)') rr(:,:,nfiles)
       close(1)
       
       ! Compute geoid displacement
-      gg(:,:,n) = deltaslxy(:,:)+rr(:,:,n)
+      gg(:,:,nfiles) = deltaslxy(:,:)+rr(:,:,nfiles)
     
-      open(unit = 1, file = outputfolder//'G'//trim(numstr)//ext, form = 'formatted', access = 'sequential', &
+      open(unit = 1, file = trim(adjustl(outputfolder))//'G'//trim(numstr)//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
       & status = 'replace')
-      write(1,'(ES14.4E2)') gg(:,:,n)
+      write(1,'(ES14.4E2)') gg(:,:,nfiles)
       close(1)
    endif
 
@@ -1598,30 +2073,162 @@ if (nmelt.GT.0) then
       ! topography change between the previous and the current timestep 
       ! this is the information passed to the ice sheet model
 
-      open(unit = 1, file = folder_coupled//'bedrock'//ext, form = 'formatted', access = 'sequential', &
+      open(unit = 1, file = trim(adjustl(folder_coupled))//'bedrock'//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
       & status = 'replace')
       write(1,'(ES16.9E2)') topoxy_m1(:,:)-topoxy(:,:)
       close(1)
       
       !write out the current ice load as a new file
-      open(unit = 1, file = outputfolder_ice//icemodel_out//trim(numstr)//ext, form ='formatted', access = 'sequential', &
-      & status = 'replace')
+      open(unit = 1, file = trim(adjustl(outputfolder_ice))//trim(adjustl(icemodel_out))//trim(numstr)//trim(adjustl(ext)), &
+      & form ='formatted', access = 'sequential', status = 'replace')
       write(1,'(ES16.9E2)') icexy(:,:,nfiles)
       close(1)
    endif !endif coupling
 
+   if (netcdfOutput) then
+      call check_rcode(nf90_open(chist, nf90_write, ncid), 2077)
+      write(*,*) 'Writing output to NETCDF file'
+
+      !write fields
+      !1D fields
+      start(1) = iter + 1
+
+      !add current time to time dimension
+      call check_rcode(nf90_inq_varid(ncid, 'time', varid), 2085)
+      call check_rcode(nf90_put_var(ncid, varid, starttime + dtime*iter, start), 2086)
+
+      if(iceVolume) then
+         call check_rcode(nf90_inq_varid(ncid, 'ice_vol', varid), 2089)
+         call check_rcode(nf90_put_var(ncid, varid, grounded_ice_volume, start), 2090)
+
+         call check_rcode(nf90_inq_varid(ncid, 'grd_ice_mass', varid), 2092)
+         call check_rcode(nf90_put_var(ncid, varid, grounded_ice_volume*rhoi, start), 2093)
+
+         call check_rcode(nf90_inq_varid(ncid, 'total_ice_mass', varid), 2095)
+         call check_rcode(nf90_put_var(ncid, varid, ice_volume*rhoi, start), 2096)
+      endif
+
+      call check_rcode(nf90_inq_varid(ncid, 'maf', varid), 2099)
+      call check_rcode(nf90_put_var(ncid, varid, maf, start), 2100)
+
+
+      if(calcRG) then
+         !grdmip outputs specifically call for mean delta G over ocean
+         do i = 1, nglv
+            do j = 1, nglv*2
+               ggxy(i,j) = cstarxy(i,j) * gg(i,j, nfiles)
+            enddo
+         enddo
+         call spat2spec(ggxy(:,:), gglm(:,:), spheredat)
+
+        total_delta_g = gglm(0,0)*4*pi*radius**2
+        
+
+         call check_rcode(nf90_inq_varid(ncid, 'mean_delta_g', varid), 2115)
+         call check_rcode(nf90_put_var(ncid, varid, total_delta_g/ocean_area, start), 2116)
+
+      endif
+
+      call check_rcode(nf90_inq_varid(ncid, 'ocean_area_grdice', varid), 2120)
+      call check_rcode(nf90_put_var(ncid, varid, ocean_area_grdice, start), 2121)
+
+      call check_rcode(nf90_inq_varid(ncid, 'ocean_area', varid), 2123)
+      call check_rcode(nf90_put_var(ncid, varid, ocean_area, start), 2124)
+
+      !3D fields
+      !y,x,time
+      start(1) = 1
+      count(1) = nglv*2
+      start(2) = 1
+      count(2) = nglv
+      start(3) = iter + 1
+      count(3) = 1
+
+      call check_rcode(nf90_inq_varid(ncid, 'beta', varid), 2135)
+      call check_rcode(nf90_put_var(ncid, varid, beta(:,:), start, count), 2136)
+
+      call check_rcode(nf90_inq_varid(ncid, 'ocean_area_fraction', varid), 2138)
+      call check_rcode(nf90_put_var(ncid, varid, cxy, start, count), 2139)
+
+      call check_rcode(nf90_inq_varid(ncid, 'land_ice_area_fraction', varid), 2141)
+      call check_rcode(nf90_put_var(ncid, varid, land_ice_area_fraction, start, count), 2142)
+
+      call check_rcode(nf90_inq_varid(ncid, 'Ocean', varid), 2144)
+      call check_rcode(nf90_put_var(ncid, varid, cxy, start, count), 2145)
+
+      call check_rcode(nf90_inq_varid(ncid, 'tgrid', varid), 2147)
+      call check_rcode(nf90_put_var(ncid, varid, topoxy, start, count), 2148)
+
+      if(calcRG) then
+         call check_rcode(nf90_inq_varid(ncid, 'delta_r', varid), 2151)
+         call check_rcode(nf90_put_var(ncid, varid, rr(:,:,nfiles), start, count), 2152)
+
+         call check_rcode(nf90_inq_varid(ncid, 'delta_g', varid), 2154)
+         call check_rcode(nf90_put_var(ncid, varid, gg(:,:,nfiles), start, count), 2155)
+      endif
+
+      !degree, order, time
+      start(1) = 1
+      count(1) = norder + 1
+      start(2) = 1
+      count(2) = norder + 1
+      start(3) = 1
+      count(3) = 1
+
+      do i = 0, norder
+         do j = 0, norder
+            deltaS_real(i,j) = real(deltaS(i,j,nfiles))
+            deltaS_img(i,j)  = aimag(deltaS(i,j,nfiles))
+         enddo
+      enddo
+
+      call check_rcode(nf90_inq_varid(ncid, 'dS_converged_real', varid), 2173)
+      call check_rcode(nf90_put_var(ncid, varid, deltaS_real(:,:), start), 2174)
+
+      call check_rcode(nf90_inq_varid(ncid, 'dS_converged_img', varid), 2176)
+      call check_rcode(nf90_put_var(ncid, varid, deltaS_img(:,:), start), 2177)
+
+      current_time = iter * dt1     !time passed since the start of the simulation  
+      if (current_time == L_sim) then !if we are at the last time step of simulation
+         start(1) = 1
+         count(1) = norder + 1
+         start(2) = 1
+         count(2) = norder + 1
+         start(3) = 1
+         count(3) = 1
+
+         do i = 0, norder
+            do j = 0, norder
+               Clm(i,j) = real(gglm(i,j))
+               Slm(i,j) = aimag(gglm(i,j))
+            enddo
+         enddo
+         call check_rcode(nf90_inq_varid(ncid, 'Clm', varid), 2194)
+         call check_rcode(nf90_put_var(ncid, varid, Clm(:,:), start, count), 2195)
+
+         call check_rcode(nf90_inq_varid(ncid, 'Slm', varid), 2197)
+         call check_rcode(nf90_put_var(ncid, varid, Slm(:,:), start, count), 2198)
+      endif
+      call check_rcode(nf90_redef(ncid), 2200)
+      call check_rcode(nf90_close(ncid), 2201)
+
+
+   endif
+
 endif !endif nmaelt>0
+  
+
 
 call system_clock(countf) ! Total time
 call cpu_time(countf_cpu)
 if (nmelt .GT. 0) then 
    ! Write out total compuatation time of sea level change over current timestep
-   open(unit = 1, file = outputfolder//'elapsed_wall_time'//ext, form = 'formatted', access = 'sequential', &
+   open(unit = 1, file = trim(adjustl(outputfolder))//'elapsed_wall_time'//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
    & status = 'old', position='append')
    write(1,'(ES14.4E2)') float(countf-counti)/float(countrate)
    close(1)
 
-   open(unit = 1, file = outputfolder//'elapsed_cpu_time'//ext, form = 'formatted', access = 'sequential', &
+   open(unit = 1, file = trim(adjustl(outputfolder))//'elapsed_cpu_time'//trim(adjustl(ext)), form = 'formatted', access = 'sequential', &
    & status = 'old', position='append')
    write(1,'(ES14.4E2)') countf_cpu-counti_cpu
    close(1)
@@ -1636,4 +2243,16 @@ if (Travel_total > 0 .and. Travel == Travel_total) then
    write(*,*) ' GREAT JOB TW!'
 endif
 write(*,*) ''
+
+deallocate (times, lovebetatt, lovebetattrr)
+deallocate (lovebetarr,lovebeta)
+deallocate (icexy,sl)   
+deallocate (dS,deltaS)   
+deallocate (dicestar, deltaicestar)               
+deallocate (rr,gg)      
+deallocate (dil, dlambda,deltalambda)
+deallocate (dm)   
+deallocate (mask,iceload,icefiles)
+deallocate (TIMEWINDOW)    
+
 end program sl_model
